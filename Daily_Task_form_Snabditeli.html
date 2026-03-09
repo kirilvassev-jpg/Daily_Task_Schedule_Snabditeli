@@ -510,8 +510,7 @@ async function loadFromSharePoint() {
     document.getElementById('lastSaved').textContent = 'Заредено ' + nowStr();
   } catch(e) {
     console.error(e);
-    for (let i = 0; i < 3; i++) addRow();
-    showToast('⚠️ Неуспешно зареждане — показани са празни редове.', true);
+    showToast('⚠️ Неуспешно зареждане от SharePoint.', true);
   }
 }
 </script>
