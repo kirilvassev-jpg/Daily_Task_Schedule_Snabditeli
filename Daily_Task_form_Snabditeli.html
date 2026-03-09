@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Задачи на снабдителите</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
+
+.header { background: linear-gradient(135deg, #1a3a6b, #2563eb); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.5px; }
+.header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.date-block { display: flex; align-items: center; gap: 8px; }
+.date-block label { font-size: 12px; opacity: 0.85; }
+.date-block input { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 10px; border-radius: 6px; font-size: 13px; }
+.date-block input::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+.mode-toggle { display: flex; background: rgba(255,255,255,0.15); border-radius: 8px; overflow: hidden; }
+.mode-btn { padding: 6px 14px; border: none; background: transparent; color: white; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .2s; }
+.mode-btn.active { background: white; color: #1a3a6b; }
+
+.toolbar { padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { padding: 7px 14px; border-radius: 7px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .2s; }
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-sp { background: #0078d4; color: white; }
+.btn-sp:hover { background: #006cbd; }
+.btn-success { background: #16a34a; color: white; }
+.btn-outline { background: white; color: #374151; border: 1px solid #d1d5db; }
+.btn-outline:hover { background: #f3f4f6; }
+.btn-danger { background: #dc2626; color: white; }
+
+#officeView { display: block; }
+.table-wrap { overflow-x: auto; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
+thead th { background: #1e40af; color: white; padding: 9px 6px; text-align: center; font-weight: 600; font-size: 11px; white-space: nowrap; border: 1px solid #1d3a8a; }
+tbody tr { border-bottom: 1px solid #e5e7eb; }
+tbody tr:nth-child(even) { background: #f9fafb; }
+tbody tr:hover { background: #eff6ff; }
+tbody tr.status-taken { background: #fef9c3 !important; }
+tbody tr.status-done { background: #dcfce7 !important; }
+tbody td { padding: 5px 4px; border: 1px solid #e5e7eb; vertical-align: middle; }
+td.num { text-align: center; font-weight: 700; color: #6b7280; font-size: 11px; width: 30px; }
+td input[type="text"], td input[type="date"], td select {
+  width: 100%; border: none; background: transparent; font-size: 12px; padding: 3px 5px;
+  font-family: inherit; outline: none; color: #1f2937; cursor: pointer;
+}
+td select { cursor: pointer; }
+td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
+.status-badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.badge-free { background: #e0f2fe; color: #0369a1; }
+.badge-taken { background: #fef3c7; color: #92400e; }
+.badge-done { background: #d1fae5; color: #065f46; }
+.sp-btn-cell { text-align: center; }
+.sp-save-btn { padding: 3px 8px; background: #0078d4; color: white; border: none; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.sp-save-btn:hover { background: #006cbd; }
+.sp-save-btn:disabled { background: #93c5fd; cursor: default; }
+.sp-saved { font-size: 10px; color: #16a34a; font-weight: 600; }
+.del-btn { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 4px; }
+.del-btn:hover { background: #fee2e2; }
+
+#driverView { display: none; padding: 16px; }
+.driver-header { text-align: center; margin-bottom: 16px; }
+.driver-header h2 { font-size: 16px; color: #1e40af; font-weight: 700; }
+.driver-header p { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.cards { display: flex; flex-direction: column; gap: 12px; }
+.card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 5px solid #93c5fd; }
+.card.taken { border-left-color: #fbbf24; }
+.card.done { border-left-color: #4ade80; opacity: 0.75; }
+.card-num { font-size: 11px; color: #9ca3af; font-weight: 600; margin-bottom: 8px; }
+.card-row { display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.card-field { flex: 1; min-width: 130px; }
+.card-field label { font-size: 10px; color: #9ca3af; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.card-field span { font-size: 13px; color: #1f2937; font-weight: 500; }
+.card-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.take-btn { flex: 1; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.done-btn { flex: 1; padding: 10px; background: #16a34a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.taken-info { font-size: 12px; color: #92400e; background: #fef3c7; padding: 6px 10px; border-radius: 6px; margin-top: 8px; }
+.done-info { font-size: 12px; color: #065f46; background: #d1fae5; padding: 6px 10px; border-radius: 6px; margin-top: 8px; }
+
+/* DRIVER MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 340px; text-align: center; }
+.modal h3 { font-size: 17px; color: #1e40af; margin-bottom: 8px; }
+.modal p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+.modal select { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; outline: none; text-align: center; font-family: inherit; color: #1f2937; }
+.modal select:focus { border-color: #2563eb; }
+.modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+.modal-btns button { flex: 1; padding: 11px; border-radius: 8px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; }
+.modal-confirm { background: #2563eb; color: white; }
+.modal-cancel { background: #f3f4f6; color: #374151; }
+
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1e40af; color: white; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.toast.show { display: block; }
+.toast.error { background: #dc2626; }
+
+.footer { padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.stats { display: flex; gap: 16px; }
+.stat { text-align: center; }
+.stat .val { font-size: 20px; font-weight: 700; color: #1e40af; }
+.stat .lbl { font-size: 10px; color: #9ca3af; }
+.last-saved { font-size: 11px; color: #9ca3af; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 ЗАДАЧИ НА СНАБДИТЕЛИТЕ ЗА ДЕНЯ</h1>
+  <div class="header-right">
+    <div class="date-block">
+      <label>Дата:</label>
+      <input type="date" id="mainDate">
+    </div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" onclick="setMode('office')">🖥️ Офис</button>
+      <button class="mode-btn" onclick="setMode('driver')">📱 Шофьор</button>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar" id="officeToolbar">
+  <button class="btn btn-primary" onclick="addRow()">＋ Добави задача</button>
+  <button class="btn btn-sp" onclick="saveAllToSharePoint()">☁️ Запази всички в SharePoint</button>
+  <button class="btn btn-success" onclick="saveData()">💾 Запази локално</button>
+  <button class="btn btn-outline" onclick="loadData()">📂 Зареди</button>
+  <button class="btn btn-outline" onclick="window.print()">🖨️ Печат</button>
+  <button class="btn btn-danger" onclick="clearAll()">🗑️ Изчисти</button>
+</div>
+
+<div id="officeView">
+  <div class="table-wrap">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th>№</th>
+          <th style="min-width:150px">Логистика Специалист</th>
+          <th style="min-width:130px">Доставчик</th>
+          <th style="min-width:100px">Дата (срок)</th>
+          <th style="min-width:180px">Направление/дружество</th>
+          <th style="min-width:140px">Място на доставка</th>
+          <th style="min-width:140px">Снабдител</th>
+          <th style="min-width:80px">Статус</th>
+          <th style="min-width:80px">SharePoint</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="driverView" style="display:none; padding:16px;">
+  <div class="driver-header">
+    <h2>📦 Задачи за днес</h2>
+    <p>Изберете задача и потвърдете доставката</p>
+  </div>
+  <div class="cards" id="cardsContainer"></div>
+</div>
+
+<div class="footer">
+  <div class="stats">
+    <div class="stat"><div class="val" id="totalCount">0</div><div class="lbl">Общо</div></div>
+    <div class="stat"><div class="val" id="takenCount">0</div><div class="lbl">В процес</div></div>
+    <div class="stat"><div class="val" id="doneCount">0</div><div class="lbl">Изпълнени</div></div>
+    <div class="stat"><div class="val" id="freeCount">0</div><div class="lbl">Свободни</div></div>
+  </div>
+  <div class="last-saved">Последно запазено: <span id="lastSaved">—</span></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>🚚 Поемам задача</h3>
+    <p>Изберете вашето име</p>
+    <select id="driverNameSelect">
+      <option value="">— Изберете снабдител —</option>
+      <option>Ангел Драгомиров</option>
+      <option>Димитър Йотов</option>
+      <option>Николай Пейчинов</option>
+      <option>Филип Цеков</option>
+    </select>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Отказ</button>
+      <button class="modal-confirm" onclick="confirmTake()">Поемам ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1";
+
+const SPECIALISTS = [
+  'Димитрина Младенова','Димитър Йотов','Йовко Иванов','Кирил Васев',
+  'Мария Козарева','Милен Медаров','Николай Динчов','Христо Христов'
+];
+const DIRECTIONS = [
+  'Администрация/Управителен съвет','Безизкопни технологии',
+  'ВиК Строителство и поддръжка','Инфраструктурно строителство',
+  'Механизация и транспорт','РаТек ООД',
+  'Строителство на сгради и съоръжения','Стройкомерс Плевен'
+];
+const DRIVERS = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов','Филип Цеков'];
+
+function makeSelect(options, value, onChange, disabled) {
+  const opts = options.map(o => `<option${o===value?' selected':''}>${o}</option>`).join('');
+  return `<select onchange="${onChange}" ${disabled?'disabled style="color:#92400e"':''}>
+    <option value="">— Изберете —</option>${opts}</select>`;
+}
+
+let rows = [], rowId = 0, pendingTakeId = null;
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function nowStr() {
+  const n = new Date();
+  return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit',minute:'2-digit'});
+}
+
+document.getElementById('mainDate').value = todayStr();
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function setMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&mode==='office')||(i===1&&mode==='driver')));
+  document.getElementById('officeView').style.display = mode==='office'?'block':'none';
+  document.getElementById('driverView').style.display = mode==='driver'?'block':'none';
+  document.getElementById('officeToolbar').style.display = mode==='office'?'flex':'none';
+  if (mode==='driver') renderCards();
+}
+
+function addRow(data) {
+  const id = ++rowId;
+  const r = data || { id, specialist:'', firma:'', deadline:'', direction:'', place:'', supplier:'', status:'За изпълнение', savedToSP: false };
+  if (!r.id) r.id = id;
+  if (!r.status) r.status = 'За изпълнение';
+  rows.push(r);
+  renderTableRow(r);
+  updateStats();
+}
+
+function renderTableRow(r) {
+  const tbody = document.getElementById('tableBody');
+  const tr = document.createElement('tr');
+  tr.id = 'row-' + r.id;
+  tr.className = r.status==='Изпълнена'?'status-done':r.status==='В процес на изпълнение'?'status-taken':'';
+
+  const badge = r.status==='Изпълнена'
+    ? '<span class="status-badge badge-done">✅ Изпълнена</span>'
+    : r.status==='В процес на изпълнение'
+    ? '<span class="status-badge badge-taken">🚚 В процес</span>'
+    : '<span class="status-badge badge-free">📋 За изпълнение</span>';
+
+  const spCell = r.savedToSP
+    ? '<span class="sp-saved">✅ Запазено</span>'
+    : `<button class="sp-save-btn" onclick="saveRowToSharePoint(${r.id})">☁️ Запази</button>`;
+
+  const isTaken = r.status !== 'За изпълнение';
+
+  tr.innerHTML = `
+    <td class="num">${rows.indexOf(r)+1}</td>
+    <td>${makeSelect(SPECIALISTS, r.specialist, `updateField(${r.id},'specialist',this.value)`, false)}</td>
+    <td><input type="text" placeholder="Доставчик" value="${r.firma||''}" onchange="updateField(${r.id},'firma',this.value)"></td>
+    <td><input type="date" value="${r.deadline||''}" onchange="updateField(${r.id},'deadline',this.value)"></td>
+    <td>${makeSelect(DIRECTIONS, r.direction, `updateField(${r.id},'direction',this.value)`, false)}</td>
+    <td><input type="text" placeholder="Адрес / обект" value="${r.place||''}" onchange="updateField(${r.id},'place',this.value)"></td>
+    <td>${makeSelect(DRIVERS, r.supplier, `updateField(${r.id},'supplier',this.value)`, isTaken)}</td>
+    <td style="text-align:center">${badge}</td>
+    <td class="sp-btn-cell">${spCell}</td>
+    <td><button class="del-btn" onclick="deleteRow(${r.id})">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function collectRowData(r) {
+  const tr = document.getElementById('row-' + r.id);
+  if (!tr) return;
+  const selects = tr.querySelectorAll('select');
+  const inputs = tr.querySelectorAll('input');
+  r.specialist = selects[0]?.value || r.specialist;
+  r.firma      = inputs[0]?.value || r.firma;
+  r.deadline   = inputs[1]?.value || r.deadline;
+  r.direction  = selects[1]?.value || r.direction;
+  r.place      = inputs[2]?.value || r.place;
+  if (r.status === 'За изпълнение') r.supplier = selects[2]?.value || r.supplier;
+}
+
+async function saveRowToSharePoint(id) {
+  const r = rows.find(x => x.id === id);
+  if (!r) return;
+  collectRowData(r);
+  const btn = document.querySelector(`#row-${id} .sp-save-btn`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  const payload = {
+    date: document.getElementById('mainDate').value,
+    specialist: r.specialist,
+    direction: r.direction,
+    deadline: r.deadline,
+    supplier: r.firma,
+    place: r.place,
+    driver: r.supplier,
+    status: r.status
+  };
+  try {
+    await fetch(FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    r.savedToSP = true;
+    rebuildTable();
+    showToast('✅ Записано в SharePoint!');
+    document.getElementById('lastSaved').textContent = nowStr();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = '☁️ Запази'; }
+    showToast('❌ Грешка при записване!', true);
+  }
+}
+
+async function saveAllToSharePoint() {
+  const unsaved = rows.filter(r => !r.savedToSP);
+  if (unsaved.length === 0) { showToast('Всички задачи са вече запазени!'); return; }
+  showToast(`⏳ Записвам ${unsaved.length} задачи...`);
+  for (const r of unsaved) await saveRowToSharePoint(r.id);
+  showToast('✅ Всички задачи са записани в SharePoint!');
+}
+
+function renderCards() {
+  const container = document.getElementById('cardsContainer');
+  container.innerHTML = '';
+  if (rows.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:40px">Няма задачи за днес</div>';
+    return;
+  }
+  rows.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'card' + (r.status==='В процес на изпълнение'?' taken':r.status==='Изпълнена'?' done':'');
+    card.id = 'card-' + r.id;
+    let actionsHtml = '';
+    if (r.status==='За изпълнение') {
+      actionsHtml = `<button class="take-btn" onclick="openModal(${r.id})">🚚 Поемам задачата</button>`;
+    } else if (r.status==='В процес на изпълнение') {
+      actionsHtml = `
+        <div class="taken-info">🚚 Поето от: <strong>${r.supplier}</strong></div>
+        <button class="done-btn" onclick="markDone(${r.id})">✅ Изпълнено</button>
+      `;
+    } else {
+      actionsHtml = `<div class="done-info">✅ Изпълнена от <strong>${r.supplier}</strong> на ${r.doneTime||''}</div>`;
+    }
+    card.innerHTML = `
+      <div class="card-num">Задача №${rows.indexOf(r)+1}</div>
+      <div class="card-row">
+        <div class="card-field"><label>Доставчик</label><span>${r.firma||'—'}</span></div>
+        <div class="card-field"><label>Направление/дружество</label><span>${r.direction||'—'}</span></div>
+      </div>
+      <div class="card-row">
+        <div class="card-field"><label>Място на доставка</label><span>${r.place||'—'}</span></div>
+        <div class="card-field"><label>Срок</label><span>${r.deadline||'—'}</span></div>
+      </div>
+      <div class="card-actions">${actionsHtml}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function openModal(id) {
+  pendingTakeId = id;
+  document.getElementById('driverNameSelect').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  pendingTakeId = null;
+}
+async function confirmTake() {
+  const name = document.getElementById('driverNameSelect').value;
+  if (!name) { alert('Моля изберете снабдител!'); return; }
+  const r = rows.find(x => x.id === pendingTakeId);
+  if (r) { r.supplier = name; r.status = 'В процес на изпълнение'; r.savedToSP = false; }
+  const tid = pendingTakeId;
+  closeModal();
+  rebuildTable();
+  renderCards();
+  updateStats();
+  await saveRowToSharePoint(tid);
+}
+
+async function markDone(id) {
+  const r = rows.find(x => x.id === id);
+  if (!r) return;
+  r.status = 'Изпълнена';
+  r.doneTime = nowStr();
+  r.savedToSP = false;
+  rebuildTable();
+  renderCards();
+  updateStats();
+  await saveRowToSharePoint(id);
+}
+
+function updateField(id, field, val) {
+  const r = rows.find(x => x.id === id);
+  if (r) { r[field] = val; r.savedToSP = false; }
+  updateStats();
+}
+
+function deleteRow(id) {
+  rows = rows.filter(x => x.id !== id);
+  rebuildTable();
+  updateStats();
+}
+
+function rebuildTable() {
+  document.getElementById('tableBody').innerHTML = '';
+  rows.forEach(r => renderTableRow(r));
+  document.querySelectorAll('#tableBody tr').forEach((tr,i) => tr.querySelector('.num').textContent = i+1);
+}
+
+function updateStats() {
+  const done = rows.filter(r => r.status==='Изпълнена').length;
+  const taken = rows.filter(r => r.status==='В процес на изпълнение').length;
+  const free = rows.filter(r => r.status==='За изпълнение').length;
+  document.getElementById('totalCount').textContent = rows.length;
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('takenCount').textContent = taken;
+  document.getElementById('freeCount').textContent = free;
+}
+
+function saveData() {
+  rows.forEach(r => collectRowData(r));
+  const payload = { date: document.getElementById('mainDate').value, rows };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `zadachi_${payload.date||'export'}.json`;
+  a.click();
+  document.getElementById('lastSaved').textContent = nowStr();
+}
+
+function loadData() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        rows = []; rowId = 0;
+        document.getElementById('tableBody').innerHTML = '';
+        if (data.date) document.getElementById('mainDate').value = data.date;
+        (data.rows||[]).forEach(r => addRow(r));
+        document.getElementById('lastSaved').textContent = 'Заредено ' + nowStr();
+      } catch { alert('Невалиден файл!'); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+function clearAll() {
+  if (confirm('Сигурни ли сте?')) {
+    rows = []; rowId = 0;
+    document.getElementById('tableBody').innerHTML = '';
+    updateStats();
+  }
+}
+
+for (let i = 0; i < 3; i++) addRow();
+</script>
+</body>
+</html>
