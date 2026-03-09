@@ -89,6 +89,11 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 .stat .val { font-size: 20px; font-weight: 700; color: #1e40af; }
 .stat .lbl { font-size: 10px; color: #9ca3af; }
 .last-saved { font-size: 11px; color: #9ca3af; }
+.notif { position: fixed; top: 20px; right: 24px; background: #16a34a; color: white; padding: 14px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 300; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.25); max-width: 300px; line-height: 1.5; }
+.notif.show { display: block; animation: slideIn .3s ease; }
+.notif.taken { background: #d97706; }
+@keyframes slideIn { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+.auto-refresh-badge { font-size: 10px; color: #7c3aed; font-weight: 600; padding: 3px 8px; background: #ede9fe; border-radius: 20px; }
 </style>
 </head>
 <body>
@@ -157,7 +162,10 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
     <div class="stat"><div class="val" id="doneCount">0</div><div class="lbl">Изпълнени</div></div>
     <div class="stat"><div class="val" id="freeCount">0</div><div class="lbl">Свободни</div></div>
   </div>
-  <div class="last-saved">Последно запазено: <span id="lastSaved">—</span></div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span class="auto-refresh-badge">🔄 Авто-обновяване: <span id="nextRefresh">60</span>с</span>
+    <div class="last-saved">Последно запазено: <span id="lastSaved">—</span></div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="modalOverlay">
@@ -179,8 +187,79 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="notif" id="notif"></div>
 
 <script>
+var AUTO_REFRESH_INTERVAL = 60; // секунди
+var autoRefreshTimer = null;
+var countdownTimer = null;
+var secondsLeft = AUTO_REFRESH_INTERVAL;
+
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  if (countdownTimer) clearInterval(countdownTimer);
+  secondsLeft = AUTO_REFRESH_INTERVAL;
+  countdownTimer = setInterval(function() {
+    secondsLeft--;
+    var el = document.getElementById('nextRefresh');
+    if (el) el.textContent = secondsLeft;
+    if (secondsLeft <= 0) {
+      secondsLeft = AUTO_REFRESH_INTERVAL;
+      silentRefresh();
+    }
+  }, 1000);
+}
+
+function showNotif(msg, isTaken) {
+  var n = document.getElementById('notif');
+  n.innerHTML = msg;
+  n.className = 'notif show' + (isTaken ? ' taken' : '');
+  setTimeout(function() { n.className = 'notif'; }, 6000);
+}
+
+// Тихо обновяване — само сравнява статусите, не рестартира таблицата ако няма промяна
+function silentRefresh() {
+  fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      var items = (data.value || []).filter(function(item) {
+        return item.Доставчик || item.Специалист || item['Място_x0020_на_x0020_доставка'];
+      });
+      var changed = false;
+      var notifications = [];
+      items.forEach(function(item) {
+        var r = rows.find(function(x) { return x.spId == item.ID; });
+        if (r) {
+          var newStatus = item['Статус_x0020_на_x0020_задачата'] || 'За изпълнение';
+          var newSupplier = item.Снабдител || '';
+          if (r.status !== newStatus || r.supplier !== newSupplier) {
+            // Статусът е сменен от снабдител
+            if (newStatus === 'Изпълнена' && r.status !== 'Изпълнена') {
+              notifications.push('✅ Задача изпълнена!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
+            } else if (newStatus === 'В процес на изпълнение' && r.status === 'За изпълнение') {
+              notifications.push('🚚 Задача поета!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
+            }
+            r.status   = newStatus;
+            r.supplier = newSupplier;
+            r.savedToSP = true;
+            changed = true;
+          }
+        }
+      });
+      if (changed) {
+        rebuildTable();
+        updateStats();
+        if (document.getElementById('driverView').style.display !== 'none') renderCards();
+        document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
+      }
+      // Показваме нотификации
+      if (notifications.length > 0) {
+        var isTaken = notifications[0].indexOf('🚚') >= 0;
+        showNotif(notifications.join('<hr style="border-color:rgba(255,255,255,0.3);margin:6px 0">'), isTaken);
+      }
+    })
+    .catch(function() { /* тихо — не показваме грешка при авто-обновяване */ });
+}
 var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
@@ -580,6 +659,7 @@ function clearAll() {
 }
 
 loadFromSharePoint();
+startAutoRefresh();
 </script>
 </body>
 </html>
