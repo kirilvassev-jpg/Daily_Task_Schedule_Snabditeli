@@ -124,6 +124,7 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
   <button class="btn btn-primary" onclick="addRow()">＋ Добави задача</button>
   <button class="btn btn-sp" onclick="saveAllToSharePoint()">☁️ Запази всички в SharePoint</button>
   <button class="btn btn-success" onclick="saveData()">💾 Запази локално</button>
+  <button class="btn btn-outline" onclick="loadFromSharePoint()">🔄 Обнови</button>
   <button class="btn btn-outline" onclick="loadData()">📂 Зареди</button>
   <button class="btn btn-outline" onclick="window.print()">🖨️ Печат</button>
   <button class="btn btn-danger" onclick="clearAll()">🗑️ Изчисти</button>
@@ -311,7 +312,6 @@ async function saveRowToSharePoint(id) {
   try {
     await fetch(FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     r.savedToSP = true;
-    isEditing = false;
     rebuildTable();
     showToast('✅ Записано в SharePoint!');
     document.getElementById('lastSaved').textContent = nowStr();
@@ -402,7 +402,6 @@ async function markDone(id) {
 }
 
 function updateField(id, field, val) {
-  isEditing = true;
   const r = rows.find(x => x.id === id);
   if (r) { r[field] = val; r.savedToSP = false; }
   updateStats();
@@ -471,19 +470,8 @@ function clearAll() {
   }
 }
 
-let isEditing = false;
-let refreshInterval = null;
-
-function startAutoRefresh() {
-  if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(() => {
-    if (!isEditing) loadFromSharePoint();
-  }, 30000);
-}
-
-// Auto-load from SharePoint on start
+// Auto-load from SharePoint on start only
 loadFromSharePoint();
-startAutoRefresh();
 
 async function loadFromSharePoint() {
   showToast('⏳ Зареждане от SharePoint...');
