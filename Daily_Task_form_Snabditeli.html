@@ -7,7 +7,6 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
-
 .header { background: linear-gradient(135deg, #1a3a6b, #2563eb); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.5px; }
 .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -15,22 +14,21 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .date-block label { font-size: 12px; opacity: 0.85; }
 .date-block input { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 10px; border-radius: 6px; font-size: 13px; }
 .date-block input::-webkit-calendar-picker-indicator { filter: invert(1); }
-
 .mode-toggle { display: flex; background: rgba(255,255,255,0.15); border-radius: 8px; overflow: hidden; }
 .mode-btn { padding: 6px 14px; border: none; background: transparent; color: white; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .2s; }
 .mode-btn.active { background: white; color: #1a3a6b; }
-
 .toolbar { padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px; flex-wrap: wrap; }
 .btn { padding: 7px 14px; border-radius: 7px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .2s; }
 .btn-primary { background: #2563eb; color: white; }
 .btn-primary:hover { background: #1d4ed8; }
 .btn-sp { background: #0078d4; color: white; }
 .btn-sp:hover { background: #006cbd; }
+.btn-refresh { background: #7c3aed; color: white; }
+.btn-refresh:hover { background: #6d28d9; }
 .btn-success { background: #16a34a; color: white; }
 .btn-outline { background: white; color: #374151; border: 1px solid #d1d5db; }
 .btn-outline:hover { background: #f3f4f6; }
 .btn-danger { background: #dc2626; color: white; }
-
 #officeView { display: block; }
 .table-wrap { overflow-x: auto; padding: 16px; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
@@ -42,11 +40,7 @@ tbody tr.status-taken { background: #fef9c3 !important; }
 tbody tr.status-done { background: #dcfce7 !important; }
 tbody td { padding: 5px 4px; border: 1px solid #e5e7eb; vertical-align: middle; }
 td.num { text-align: center; font-weight: 700; color: #6b7280; font-size: 11px; width: 30px; }
-td input[type="text"], td input[type="date"], td select {
-  width: 100%; border: none; background: transparent; font-size: 12px; padding: 3px 5px;
-  font-family: inherit; outline: none; color: #1f2937; cursor: pointer;
-}
-td select { cursor: pointer; }
+td input[type="text"], td input[type="date"], td select { width: 100%; border: none; background: transparent; font-size: 12px; padding: 3px 5px; font-family: inherit; outline: none; color: #1f2937; cursor: pointer; }
 td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 .status-badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; }
 .badge-free { background: #e0f2fe; color: #0369a1; }
@@ -54,12 +48,10 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 .badge-done { background: #d1fae5; color: #065f46; }
 .sp-btn-cell { text-align: center; }
 .sp-save-btn { padding: 3px 8px; background: #0078d4; color: white; border: none; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.sp-save-btn:hover { background: #006cbd; }
 .sp-save-btn:disabled { background: #93c5fd; cursor: default; }
 .sp-saved { font-size: 10px; color: #16a34a; font-weight: 600; }
 .del-btn { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 4px; }
 .del-btn:hover { background: #fee2e2; }
-
 #driverView { display: none; padding: 16px; }
 .driver-header { text-align: center; margin-bottom: 16px; }
 .driver-header h2 { font-size: 16px; color: #1e40af; font-weight: 700; }
@@ -78,24 +70,20 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 .done-btn { flex: 1; padding: 10px; background: #16a34a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .taken-info { font-size: 12px; color: #92400e; background: #fef3c7; padding: 6px 10px; border-radius: 6px; margin-top: 8px; }
 .done-info { font-size: 12px; color: #065f46; background: #d1fae5; padding: 6px 10px; border-radius: 6px; margin-top: 8px; }
-
-/* DRIVER MODAL */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
 .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 340px; text-align: center; }
 .modal h3 { font-size: 17px; color: #1e40af; margin-bottom: 8px; }
 .modal p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
-.modal select { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; outline: none; text-align: center; font-family: inherit; color: #1f2937; }
+.modal select { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; outline: none; font-family: inherit; color: #1f2937; }
 .modal select:focus { border-color: #2563eb; }
 .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
 .modal-btns button { flex: 1; padding: 11px; border-radius: 8px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; }
 .modal-confirm { background: #2563eb; color: white; }
 .modal-cancel { background: #f3f4f6; color: #374151; }
-
 .toast { position: fixed; bottom: 24px; right: 24px; background: #1e40af; color: white; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .toast.show { display: block; }
 .toast.error { background: #dc2626; }
-
 .footer { padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .stats { display: flex; gap: 16px; }
 .stat { text-align: center; }
@@ -124,7 +112,7 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
   <button class="btn btn-primary" onclick="addRow()">＋ Добави задача</button>
   <button class="btn btn-sp" onclick="saveAllToSharePoint()">☁️ Запази всички в SharePoint</button>
   <button class="btn btn-success" onclick="saveData()">💾 Запази локално</button>
-  <button class="btn btn-outline" onclick="loadFromSharePoint()">🔄 Обнови</button>
+  <button class="btn btn-refresh" onclick="loadFromSharePoint()">🔄 Обнови</button>
   <button class="btn btn-outline" onclick="loadData()">📂 Зареди</button>
   <button class="btn btn-outline" onclick="window.print()">🖨️ Печат</button>
   <button class="btn btn-danger" onclick="clearAll()">🗑️ Изчисти</button>
@@ -156,6 +144,9 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
   <div class="driver-header">
     <h2>📦 Задачи за днес</h2>
     <p>Изберете задача и потвърдете доставката</p>
+  </div>
+  <div style="text-align:center; margin-bottom:12px;">
+    <button class="btn btn-refresh" onclick="loadFromSharePoint()">🔄 Обнови задачите</button>
   </div>
   <div class="cards" id="cardsContainer"></div>
 </div>
@@ -191,55 +182,52 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 <div class="toast" id="toast"></div>
 
 <script>
-const FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
-const UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig"; = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
+var SAVE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
+var GET_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
+var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
 
-const SPECIALISTS = [
-  'Димитрина Младенова','Димитър Йотов','Йовко Иванов','Кирил Васев',
-  'Мария Козарева','Милен Медаров','Николай Динчов','Христо Христов'
-];
-const DIRECTIONS = [
-  'Администрация/Управителен съвет','Безизкопни технологии',
-  'ВиК Строителство и поддръжка','Инфраструктурно строителство',
-  'Механизация и транспорт','РаТек ООД',
-  'Строителство на сгради и съоръжения','Стройкомерс Плевен'
-];
-const DRIVERS = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов','Филип Цеков'];
+var SPECIALISTS = ['Димитрина Младенова','Димитър Йотов','Йовко Иванов','Кирил Васев','Мария Козарева','Милен Медаров','Николай Динчов','Христо Христов'];
+var DIRECTIONS = ['Администрация/Управителен съвет','Безизкопни технологии','ВиК Строителство и поддръжка','Инфраструктурно строителство','Механизация и транспорт','РаТек ООД','Строителство на сгради и съоръжения','Стройкомерс Плевен'];
+var DRIVERS = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов','Филип Цеков'];
 
-function makeSelect(options, value, onChange, disabled) {
-  const opts = options.map(o => `<option${o===value?' selected':''}>${o}</option>`).join('');
-  return `<select onchange="${onChange}" ${disabled?'disabled style="color:#92400e"':''}>
-    <option value="">— Изберете —</option>${opts}</select>`;
-}
-
-let rows = [], rowId = 0, pendingTakeId = null;
+var rows = [], rowId = 0, pendingTakeId = null;
 
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 function nowStr() {
-  const n = new Date();
+  var n = new Date();
   return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit',minute:'2-digit'});
 }
 
 document.getElementById('mainDate').value = todayStr();
 
 function showToast(msg, isError) {
-  const t = document.getElementById('toast');
+  var t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show' + (isError ? ' error' : '');
-  setTimeout(() => t.className = 'toast', 3000);
+  setTimeout(function() { t.className = 'toast'; }, 3000);
 }
 
 function setMode(mode) {
-  document.querySelectorAll('.mode-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&mode==='office')||(i===1&&mode==='driver')));
-  document.getElementById('officeView').style.display = mode==='office'?'block':'none';
-  document.getElementById('driverView').style.display = mode==='driver'?'block':'none';
-  document.getElementById('officeToolbar').style.display = mode==='office'?'flex':'none';
-  if (mode==='driver') renderCards();
+  var btns = document.querySelectorAll('.mode-btn');
+  btns[0].classList.toggle('active', mode === 'office');
+  btns[1].classList.toggle('active', mode === 'driver');
+  document.getElementById('officeView').style.display = mode === 'office' ? 'block' : 'none';
+  document.getElementById('driverView').style.display = mode === 'driver' ? 'block' : 'none';
+  document.getElementById('officeToolbar').style.display = mode === 'office' ? 'flex' : 'none';
+  if (mode === 'driver') renderCards();
+}
+
+function makeSelect(options, value, onchangeStr, disabled) {
+  var opts = '<option value="">— Изберете —</option>';
+  for (var i = 0; i < options.length; i++) {
+    opts += '<option' + (options[i] === value ? ' selected' : '') + '>' + options[i] + '</option>';
+  }
+  return '<select onchange="' + onchangeStr + '"' + (disabled ? ' disabled style="color:#92400e"' : '') + '>' + opts + '</select>';
 }
 
 function addRow(data) {
-  const id = ++rowId;
-  const r = data || { id, specialist:'', firma:'', deadline:'', direction:'', place:'', supplier:'', status:'За изпълнение', savedToSP: false };
+  var id = ++rowId;
+  var r = data || { id: id, spId: null, specialist: '', firma: '', deadline: '', direction: '', place: '', supplier: '', status: 'За изпълнение', savedToSP: false };
   if (!r.id) r.id = id;
   if (!r.status) r.status = 'За изпълнение';
   rows.push(r);
@@ -248,77 +236,53 @@ function addRow(data) {
 }
 
 function renderTableRow(r) {
-  const tbody = document.getElementById('tableBody');
-  const tr = document.createElement('tr');
+  var tbody = document.getElementById('tableBody');
+  var tr = document.createElement('tr');
   tr.id = 'row-' + r.id;
-  tr.className = r.status==='Изпълнена'?'status-done':r.status==='В процес на изпълнение'?'status-taken':'';
-
-  const badge = r.status==='Изпълнена'
+  tr.className = r.status === 'Изпълнена' ? 'status-done' : r.status === 'В процес на изпълнение' ? 'status-taken' : '';
+  var badge = r.status === 'Изпълнена'
     ? '<span class="status-badge badge-done">✅ Изпълнена</span>'
-    : r.status==='В процес на изпълнение'
+    : r.status === 'В процес на изпълнение'
     ? '<span class="status-badge badge-taken">🚚 В процес</span>'
     : '<span class="status-badge badge-free">📋 За изпълнение</span>';
-
-  const spCell = r.savedToSP
+  var spCell = r.savedToSP
     ? '<span class="sp-saved">✅ Запазено</span>'
-    : `<button class="sp-save-btn" onclick="saveRowToSharePoint(${r.id})">☁️ Запази</button>`;
-
-  const isTaken = r.status !== 'За изпълнение';
-
-  tr.innerHTML = `
-    <td class="num">${rows.indexOf(r)+1}</td>
-    <td>${makeSelect(SPECIALISTS, r.specialist, `updateField(${r.id},'specialist',this.value)`, false)}</td>
-    <td><input type="text" placeholder="Доставчик" value="${r.firma||''}" onchange="updateField(${r.id},'firma',this.value)"></td>
-    <td><input type="date" value="${r.deadline||''}" onchange="updateField(${r.id},'deadline',this.value)"></td>
-    <td>${makeSelect(DIRECTIONS, r.direction, `updateField(${r.id},'direction',this.value)`, false)}</td>
-    <td><input type="text" placeholder="Адрес / обект" value="${r.place||''}" onchange="updateField(${r.id},'place',this.value)"></td>
-    <td>${makeSelect(DRIVERS, r.supplier, `updateField(${r.id},'supplier',this.value)`, isTaken)}</td>
-    <td style="text-align:center">${badge}</td>
-    <td class="sp-btn-cell">${spCell}</td>
-    <td><button class="del-btn" onclick="deleteRow(${r.id})">✕</button></td>
-  `;
+    : '<button class="sp-save-btn" onclick="saveRowToSharePoint(' + r.id + ')">☁️ Запази</button>';
+  var isTaken = r.status !== 'За изпълнение';
+  tr.innerHTML =
+    '<td class="num">' + (rows.indexOf(r)+1) + '</td>' +
+    '<td>' + makeSelect(SPECIALISTS, r.specialist, 'updateField(' + r.id + ',\'specialist\',this.value)', false) + '</td>' +
+    '<td><input type="text" placeholder="Доставчик" value="' + (r.firma||'') + '" onchange="updateField(' + r.id + ',\'firma\',this.value)"></td>' +
+    '<td><input type="date" value="' + (r.deadline||'') + '" onchange="updateField(' + r.id + ',\'deadline\',this.value)"></td>' +
+    '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)', false) + '</td>' +
+    '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)"></td>' +
+    '<td>' + makeSelect(DRIVERS, r.supplier, 'updateField(' + r.id + ',\'supplier\',this.value)', isTaken) + '</td>' +
+    '<td style="text-align:center">' + badge + '</td>' +
+    '<td class="sp-btn-cell">' + spCell + '</td>' +
+    '<td><button class="del-btn" onclick="deleteRow(' + r.id + ')">✕</button></td>';
   tbody.appendChild(tr);
 }
 
 function collectRowData(r) {
-  const tr = document.getElementById('row-' + r.id);
+  var tr = document.getElementById('row-' + r.id);
   if (!tr) return;
-  const selects = tr.querySelectorAll('select');
-  const inputs = tr.querySelectorAll('input');
-  r.specialist = selects[0]?.value || r.specialist;
-  r.firma      = inputs[0]?.value || r.firma;
-  r.deadline   = inputs[1]?.value || r.deadline;
-  r.direction  = selects[1]?.value || r.direction;
-  r.place      = inputs[2]?.value || r.place;
-  if (r.status === 'За изпълнение') r.supplier = selects[2]?.value || r.supplier;
+  var selects = tr.querySelectorAll('select');
+  var inputs = tr.querySelectorAll('input');
+  r.specialist = selects[0] ? selects[0].value : r.specialist;
+  r.firma      = inputs[0] ? inputs[0].value : r.firma;
+  r.deadline   = inputs[1] ? inputs[1].value : r.deadline;
+  r.direction  = selects[1] ? selects[1].value : r.direction;
+  r.place      = inputs[2] ? inputs[2].value : r.place;
+  if (r.status === 'За изпълнение') r.supplier = selects[2] ? selects[2].value : r.supplier;
 }
 
-async function updateInSharePoint(r) {
-  if (!r.spId) {
-    // No SharePoint ID — save as new item
-    await saveRowToSharePoint(r.id);
-    return;
-  }
-  try {
-    await fetch(UPDATE_FLOW_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: r.spId, status: r.status, driver: r.supplier })
-    });
-    r.savedToSP = true;
-    showToast('✅ Статусът е обновен в SharePoint!');
-  } catch(e) {
-    showToast('❌ Грешка при обновяване!', true);
-  }
-}
-
-
-  const r = rows.find(x => x.id === id);
+function saveRowToSharePoint(id) {
+  var r = rows.find(function(x) { return x.id === id; });
   if (!r) return;
   collectRowData(r);
-  const btn = document.querySelector(`#row-${id} .sp-save-btn`);
+  var btn = document.querySelector('#row-' + id + ' .sp-save-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
-  const payload = {
+  var payload = {
     date: document.getElementById('mainDate').value,
     specialist: r.specialist,
     direction: r.direction,
@@ -328,60 +292,120 @@ async function updateInSharePoint(r) {
     driver: r.supplier,
     status: r.status
   };
-  try {
-    await fetch(FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-    r.savedToSP = true;
-    rebuildTable();
-    showToast('✅ Записано в SharePoint!');
-    document.getElementById('lastSaved').textContent = nowStr();
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = '☁️ Запази'; }
-    showToast('❌ Грешка при записване!', true);
-  }
+  fetch(SAVE_FLOW_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+    .then(function() {
+      r.savedToSP = true;
+      rebuildTable();
+      showToast('✅ Записано в SharePoint!');
+      document.getElementById('lastSaved').textContent = nowStr();
+    })
+    .catch(function() {
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Запази'; }
+      showToast('❌ Грешка при записване!', true);
+    });
 }
 
-async function saveAllToSharePoint() {
-  const unsaved = rows.filter(r => !r.savedToSP);
+function updateInSharePoint(r) {
+  if (!r.spId) {
+    saveRowToSharePoint(r.id);
+    return;
+  }
+  fetch(UPDATE_FLOW_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id: r.spId, status: r.status, driver: r.supplier })
+  })
+  .then(function() {
+    r.savedToSP = true;
+    showToast('✅ Статусът е обновен в SharePoint!');
+    document.getElementById('lastSaved').textContent = nowStr();
+  })
+  .catch(function() {
+    showToast('❌ Грешка при обновяване!', true);
+  });
+}
+
+function saveAllToSharePoint() {
+  var unsaved = rows.filter(function(r) { return !r.savedToSP; });
   if (unsaved.length === 0) { showToast('Всички задачи са вече запазени!'); return; }
-  showToast(`⏳ Записвам ${unsaved.length} задачи...`);
-  for (const r of unsaved) await saveRowToSharePoint(r.id);
-  showToast('✅ Всички задачи са записани в SharePoint!');
+  showToast('⏳ Записвам ' + unsaved.length + ' задачи...');
+  unsaved.forEach(function(r) { saveRowToSharePoint(r.id); });
+}
+
+function loadFromSharePoint() {
+  showToast('⏳ Зареждане от SharePoint...');
+  var unsavedRows = rows.filter(function(r) { return !r.savedToSP; });
+  fetch(GET_FLOW_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      var items = data.value || [];
+      var validItems = items.filter(function(item) {
+        return item.Доставчик || item.Специалист || item['Място_x0020_на_x0020_доставка'];
+      });
+      rows = [];
+      rowId = 0;
+      document.getElementById('tableBody').innerHTML = '';
+      validItems.forEach(function(item) {
+        addRow({
+          id: ++rowId,
+          spId: item.ID,
+          specialist: item.Специалист || '',
+          firma: item.Доставчик || '',
+          deadline: item['Дата_x0020_на_x0020_доставка'] ? item['Дата_x0020_на_x0020_доставка'].split('T')[0] : '',
+          direction: item['Направление_x002f_дружество'] || '',
+          place: item['Място_x0020_на_x0020_доставка'] || '',
+          supplier: item.Снабдител || '',
+          status: item['Статус_x0020_на_x0020_задачата'] || 'За изпълнение',
+          savedToSP: true
+        });
+      });
+      unsavedRows.forEach(function(r) {
+        r.id = ++rowId;
+        rows.push(r);
+        renderTableRow(r);
+      });
+      updateStats();
+      if (document.getElementById('driverView').style.display !== 'none') renderCards();
+      showToast('✅ Заредени ' + validItems.length + ' задачи от SharePoint!');
+      document.getElementById('lastSaved').textContent = 'Заредено ' + nowStr();
+    })
+    .catch(function(e) {
+      console.error(e);
+      showToast('⚠️ Неуспешно зареждане от SharePoint.', true);
+    });
 }
 
 function renderCards() {
-  const container = document.getElementById('cardsContainer');
+  var container = document.getElementById('cardsContainer');
   container.innerHTML = '';
   if (rows.length === 0) {
     container.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:40px">Няма задачи за днес</div>';
     return;
   }
-  rows.forEach(r => {
-    const card = document.createElement('div');
-    card.className = 'card' + (r.status==='В процес на изпълнение'?' taken':r.status==='Изпълнена'?' done':'');
+  rows.forEach(function(r) {
+    var card = document.createElement('div');
+    card.className = 'card' + (r.status === 'В процес на изпълнение' ? ' taken' : r.status === 'Изпълнена' ? ' done' : '');
     card.id = 'card-' + r.id;
-    let actionsHtml = '';
-    if (r.status==='За изпълнение') {
-      actionsHtml = `<button class="take-btn" onclick="openModal(${r.id})">🚚 Поемам задачата</button>`;
-    } else if (r.status==='В процес на изпълнение') {
-      actionsHtml = `
-        <div class="taken-info">🚚 Поето от: <strong>${r.supplier}</strong></div>
-        <button class="done-btn" onclick="markDone(${r.id})">✅ Изпълнено</button>
-      `;
+    var actionsHtml = '';
+    if (r.status === 'За изпълнение') {
+      actionsHtml = '<button class="take-btn" onclick="openModal(' + r.id + ')">🚚 Поемам задачата</button>';
+    } else if (r.status === 'В процес на изпълнение') {
+      actionsHtml = '<div class="taken-info">🚚 Поето от: <strong>' + r.supplier + '</strong></div>' +
+        '<button class="done-btn" onclick="markDone(' + r.id + ')">✅ Изпълнено</button>';
     } else {
-      actionsHtml = `<div class="done-info">✅ Изпълнена от <strong>${r.supplier}</strong> на ${r.doneTime||''}</div>`;
+      actionsHtml = '<div class="done-info">✅ Изпълнена от <strong>' + r.supplier + '</strong></div>';
     }
-    card.innerHTML = `
-      <div class="card-num">Задача №${rows.indexOf(r)+1}</div>
-      <div class="card-row">
-        <div class="card-field"><label>Доставчик</label><span>${r.firma||'—'}</span></div>
-        <div class="card-field"><label>Направление/дружество</label><span>${r.direction||'—'}</span></div>
-      </div>
-      <div class="card-row">
-        <div class="card-field"><label>Място на доставка</label><span>${r.place||'—'}</span></div>
-        <div class="card-field"><label>Срок</label><span>${r.deadline||'—'}</span></div>
-      </div>
-      <div class="card-actions">${actionsHtml}</div>
-    `;
+    card.innerHTML =
+      '<div class="card-num">Задача №' + (rows.indexOf(r)+1) + '</div>' +
+      '<div class="card-row">' +
+        '<div class="card-field"><label>Доставчик</label><span>' + (r.firma||'—') + '</span></div>' +
+        '<div class="card-field"><label>Направление/дружество</label><span>' + (r.direction||'—') + '</span></div>' +
+      '</div>' +
+      '<div class="card-row">' +
+        '<div class="card-field"><label>Място на доставка</label><span>' + (r.place||'—') + '</span></div>' +
+        '<div class="card-field"><label>Срок</label><span>' + (r.deadline||'—') + '</span></div>' +
+      '</div>' +
+      '<div class="card-actions">' + actionsHtml + '</div>';
     container.appendChild(card);
   });
 }
@@ -395,92 +419,85 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
   pendingTakeId = null;
 }
-async function confirmTake() {
-  const name = document.getElementById('driverNameSelect').value;
+function confirmTake() {
+  var name = document.getElementById('driverNameSelect').value;
   if (!name) { alert('Моля изберете снабдител!'); return; }
-  const r = rows.find(x => x.id === pendingTakeId);
+  var r = rows.find(function(x) { return x.id === pendingTakeId; });
   if (r) { r.supplier = name; r.status = 'В процес на изпълнение'; r.savedToSP = false; }
-  const tid = pendingTakeId;
+  var tid = pendingTakeId;
   closeModal();
   rebuildTable();
   renderCards();
   updateStats();
-  await updateInSharePoint(r);
+  if (r) updateInSharePoint(r);
 }
-
-async function markDone(id) {
-  const r = rows.find(x => x.id === id);
+function markDone(id) {
+  var r = rows.find(function(x) { return x.id === id; });
   if (!r) return;
   r.status = 'Изпълнена';
-  r.doneTime = nowStr();
   r.savedToSP = false;
   rebuildTable();
   renderCards();
   updateStats();
-  await updateInSharePoint(r);
+  updateInSharePoint(r);
 }
 
 function updateField(id, field, val) {
-  const r = rows.find(x => x.id === id);
+  var r = rows.find(function(x) { return x.id === id; });
   if (r) { r[field] = val; r.savedToSP = false; }
   updateStats();
 }
-
 function deleteRow(id) {
-  rows = rows.filter(x => x.id !== id);
+  rows = rows.filter(function(x) { return x.id !== id; });
   rebuildTable();
   updateStats();
 }
-
 function rebuildTable() {
   document.getElementById('tableBody').innerHTML = '';
-  rows.forEach(r => renderTableRow(r));
-  document.querySelectorAll('#tableBody tr').forEach((tr,i) => tr.querySelector('.num').textContent = i+1);
+  rows.forEach(function(r) { renderTableRow(r); });
+  var trs = document.querySelectorAll('#tableBody tr');
+  trs.forEach(function(tr, i) { tr.querySelector('.num').textContent = i+1; });
 }
-
 function updateStats() {
-  const done = rows.filter(r => r.status==='Изпълнена').length;
-  const taken = rows.filter(r => r.status==='В процес на изпълнение').length;
-  const free = rows.filter(r => r.status==='За изпълнение').length;
+  var done = rows.filter(function(r) { return r.status === 'Изпълнена'; }).length;
+  var taken = rows.filter(function(r) { return r.status === 'В процес на изпълнение'; }).length;
+  var free = rows.filter(function(r) { return r.status === 'За изпълнение'; }).length;
   document.getElementById('totalCount').textContent = rows.length;
   document.getElementById('doneCount').textContent = done;
   document.getElementById('takenCount').textContent = taken;
   document.getElementById('freeCount').textContent = free;
 }
-
 function saveData() {
-  rows.forEach(r => collectRowData(r));
-  const payload = { date: document.getElementById('mainDate').value, rows };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
+  rows.forEach(function(r) { collectRowData(r); });
+  var payload = { date: document.getElementById('mainDate').value, rows: rows };
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `zadachi_${payload.date||'export'}.json`;
+  a.download = 'zadachi_' + (payload.date||'export') + '.json';
   a.click();
   document.getElementById('lastSaved').textContent = nowStr();
 }
-
 function loadData() {
-  const inp = document.createElement('input');
+  var inp = document.createElement('input');
   inp.type = 'file'; inp.accept = '.json';
-  inp.onchange = e => {
-    const file = e.target.files[0];
+  inp.onchange = function(e) {
+    var file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
+    var reader = new FileReader();
+    reader.onload = function(ev) {
       try {
-        const data = JSON.parse(ev.target.result);
+        var data = JSON.parse(ev.target.result);
         rows = []; rowId = 0;
         document.getElementById('tableBody').innerHTML = '';
         if (data.date) document.getElementById('mainDate').value = data.date;
-        (data.rows||[]).forEach(r => addRow(r));
+        (data.rows||[]).forEach(function(r) { addRow(r); });
         document.getElementById('lastSaved').textContent = 'Заредено ' + nowStr();
-      } catch { alert('Невалиден файл!'); }
+      } catch(e) { alert('Невалиден файл!'); }
     };
     reader.readAsText(file);
   };
   inp.click();
 }
-
 function clearAll() {
   if (confirm('Сигурни ли сте?')) {
     rows = []; rowId = 0;
@@ -489,49 +506,8 @@ function clearAll() {
   }
 }
 
-// Auto-load from SharePoint on start only
+// Load from SharePoint on start
 loadFromSharePoint();
-
-async function loadFromSharePoint() {
-  showToast('⏳ Зареждане от SharePoint...');
-  try {
-    const res = await fetch(GET_FLOW_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-    const data = await res.json();
-    const items = data.value || [];
-    if (items.length === 0) {
-      for (let i = 0; i < 3; i++) addRow();
-      showToast('Няма задачи в SharePoint — добавени са празни редове.');
-      return;
-    }
-    rows = []; rowId = 0;
-    document.getElementById('tableBody').innerHTML = '';
-    // Filter out empty items
-    const validItems = items.filter(item => item.Доставчик || item.Специалист || item['Място_x0020_на_x0020_доставка']);
-    if (validItems.length === 0) {
-      showToast('Няма задачи в SharePoint.');
-      return;
-    }
-    validItems.forEach(item => {
-      addRow({
-        id: ++rowId,
-        spId: item.ID,
-        specialist: item.Специалист || '',
-        firma: item.Доставчик || '',
-        deadline: item['Дата_x0020_на_x0020_доставка'] ? item['Дата_x0020_на_x0020_доставка'].split('T')[0] : '',
-        direction: item['Направление_x002f_дружество'] || '',
-        place: item['Място_x0020_на_x0020_доставка'] || '',
-        supplier: item.Снабдител || '',
-        status: item['Статус_x0020_на_x0020_задачата'] || 'За изпълнение',
-        savedToSP: true
-      });
-    });
-    showToast(`✅ Заредени ${items.length} задачи от SharePoint!`);
-    document.getElementById('lastSaved').textContent = 'Заредено ' + nowStr();
-  } catch(e) {
-    console.error(e);
-    showToast('⚠️ Неуспешно зареждане от SharePoint.', true);
-  }
-}
 </script>
 </body>
 </html>
