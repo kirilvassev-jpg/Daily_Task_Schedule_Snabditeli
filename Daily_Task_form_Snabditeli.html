@@ -469,8 +469,9 @@ function clearAll() {
   }
 }
 
-// Auto-load from SharePoint on start
+// Auto-load from SharePoint on start and refresh every 30 seconds
 loadFromSharePoint();
+setInterval(loadFromSharePoint, 30000);
 
 async function loadFromSharePoint() {
   showToast('⏳ Зареждане от SharePoint...');
