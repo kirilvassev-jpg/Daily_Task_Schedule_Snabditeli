@@ -311,6 +311,7 @@ async function saveRowToSharePoint(id) {
   try {
     await fetch(FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     r.savedToSP = true;
+    isEditing = false;
     rebuildTable();
     showToast('✅ Записано в SharePoint!');
     document.getElementById('lastSaved').textContent = nowStr();
@@ -401,6 +402,7 @@ async function markDone(id) {
 }
 
 function updateField(id, field, val) {
+  isEditing = true;
   const r = rows.find(x => x.id === id);
   if (r) { r[field] = val; r.savedToSP = false; }
   updateStats();
@@ -469,9 +471,19 @@ function clearAll() {
   }
 }
 
-// Auto-load from SharePoint on start and refresh every 30 seconds
+let isEditing = false;
+let refreshInterval = null;
+
+function startAutoRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(() => {
+    if (!isEditing) loadFromSharePoint();
+  }, 30000);
+}
+
+// Auto-load from SharePoint on start
 loadFromSharePoint();
-setInterval(loadFromSharePoint, 30000);
+startAutoRefresh();
 
 async function loadFromSharePoint() {
   showToast('⏳ Зареждане от SharePoint...');
