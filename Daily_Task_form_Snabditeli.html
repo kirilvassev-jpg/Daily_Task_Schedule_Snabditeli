@@ -276,9 +276,17 @@ function collectRowData(r) {
   if (r.status === 'За изпълнение') r.supplier = selects[2] ? selects[2].value : r.supplier;
 }
 
+// ✅ ПОПРАВКА: След запис в SP, парсираме отговора и запазваме spId
 function saveRowToSharePoint(id) {
   var r = rows.find(function(x) { return x.id === id; });
   if (!r) return;
+
+  // ✅ Ако вече има spId — само обновяваме, не създаваме нов запис
+  if (r.spId) {
+    updateInSharePoint(r);
+    return;
+  }
+
   collectRowData(r);
   var btn = document.querySelector('#row-' + id + ' .sp-save-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
@@ -293,10 +301,16 @@ function saveRowToSharePoint(id) {
     status: r.status
   };
   fetch(SAVE_FLOW_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-    .then(function() {
+    .then(function(res) {
+      // ✅ Парсираме JSON отговора за да вземем ID-то от SharePoint
+      return res.json().catch(function() { return {}; });
+    })
+    .then(function(data) {
       r.savedToSP = true;
+      // ✅ Запазваме SP ID-то — провери кое поле връща твоят flow (id, ID, ItemId и т.н.)
+      r.spId = data.id || data.ID || data.ItemId || data.itemId || null;
       rebuildTable();
-      showToast('✅ Записано в SharePoint!');
+      showToast('✅ Записано в SharePoint!' + (r.spId ? ' (ID: ' + r.spId + ')' : ''));
       document.getElementById('lastSaved').textContent = nowStr();
     })
     .catch(function() {
@@ -305,8 +319,12 @@ function saveRowToSharePoint(id) {
     });
 }
 
+// ✅ ПОПРАВКА: updateInSharePoint вече НЕ може да извика saveRowToSharePoint ако няма spId
+// Вместо това изчаква първо да се запише и после обновява
 function updateInSharePoint(r) {
   if (!r.spId) {
+    // Няма spId — все още не е записано в SP, запазваме целия ред
+    // (статусът ще се запише заедно с останалите данни)
     saveRowToSharePoint(r.id);
     return;
   }
@@ -317,6 +335,7 @@ function updateInSharePoint(r) {
   })
   .then(function() {
     r.savedToSP = true;
+    rebuildTable();
     showToast('✅ Статусът е обновен в SharePoint!');
     document.getElementById('lastSaved').textContent = nowStr();
   })
@@ -423,14 +442,20 @@ function confirmTake() {
   var name = document.getElementById('driverNameSelect').value;
   if (!name) { alert('Моля изберете снабдител!'); return; }
   var r = rows.find(function(x) { return x.id === pendingTakeId; });
-  if (r) { r.supplier = name; r.status = 'В процес на изпълнение'; r.savedToSP = false; }
+  if (r) {
+    r.supplier = name;
+    r.status = 'В процес на изпълнение';
+    r.savedToSP = false;
+  }
   var tid = pendingTakeId;
   closeModal();
   rebuildTable();
   renderCards();
   updateStats();
+  // ✅ updateInSharePoint ще провери spId и ще реши дали да обнови или да запише наново
   if (r) updateInSharePoint(r);
 }
+
 function markDone(id) {
   var r = rows.find(function(x) { return x.id === id; });
   if (!r) return;
@@ -506,7 +531,6 @@ function clearAll() {
   }
 }
 
-// Load from SharePoint on start
 loadFromSharePoint();
 </script>
 </body>
