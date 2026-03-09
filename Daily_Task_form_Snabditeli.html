@@ -192,7 +192,7 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 
 <script>
 const FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
-const GET_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
+const UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig"; = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 
 const SPECIALISTS = [
   'Димитрина Младенова','Димитър Йотов','Йовко Иванов','Кирил Васев',
@@ -293,7 +293,26 @@ function collectRowData(r) {
   if (r.status === 'За изпълнение') r.supplier = selects[2]?.value || r.supplier;
 }
 
-async function saveRowToSharePoint(id) {
+async function updateInSharePoint(r) {
+  if (!r.spId) {
+    // No SharePoint ID — save as new item
+    await saveRowToSharePoint(r.id);
+    return;
+  }
+  try {
+    await fetch(UPDATE_FLOW_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: r.spId, status: r.status, driver: r.supplier })
+    });
+    r.savedToSP = true;
+    showToast('✅ Статусът е обновен в SharePoint!');
+  } catch(e) {
+    showToast('❌ Грешка при обновяване!', true);
+  }
+}
+
+
   const r = rows.find(x => x.id === id);
   if (!r) return;
   collectRowData(r);
@@ -386,7 +405,7 @@ async function confirmTake() {
   rebuildTable();
   renderCards();
   updateStats();
-  await saveRowToSharePoint(tid);
+  await updateInSharePoint(r);
 }
 
 async function markDone(id) {
@@ -398,7 +417,7 @@ async function markDone(id) {
   rebuildTable();
   renderCards();
   updateStats();
-  await saveRowToSharePoint(id);
+  await updateInSharePoint(r);
 }
 
 function updateField(id, field, val) {
