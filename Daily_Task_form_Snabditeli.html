@@ -455,7 +455,10 @@ function loadFromSharePoint() {
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      var items = (data.value || []).filter(function(item) {
+      console.log('SharePoint RAW отговор:', JSON.stringify(data));
+      var allItems = data.value || [];
+      console.log('Общо елементи от SP:', allItems.length);
+      var items = allItems.filter(function(item) {
         return item.ID && (
           (item.Доставчик && item.Доставчик.trim() !== '') ||
           (item.Специалист && item.Специалист.trim() !== '') ||
@@ -463,7 +466,9 @@ function loadFromSharePoint() {
           (item['Направление_x002f_дружество'] && item['Направление_x002f_дружество'].trim() !== '')
         );
       });
-      if (items.length === 0 && rows.length > 0) {
+      console.log('След филтър:', items.length);
+      // ✅ Защита — ако SP върне 0, не изтриваме таблицата
+      if (items.length === 0) {
         showToast('⚠️ SharePoint върна 0 записа — таблицата е непроменена.', true);
         startAutoRefresh(); return;
       }
