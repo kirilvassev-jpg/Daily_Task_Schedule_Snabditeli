@@ -265,15 +265,14 @@ function silentRefresh() {
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      var items = (data.value || []).filter(function(item) {
-        return item.ID && item.Title;
-      });
+      var items = (data.value || []).filter(function(item) { return item.ID; });
       var changed = false, notifications = [];
       items.forEach(function(item) {
         var r = rows.find(function(x) { return x.spId == item.ID; });
         if (r) {
-          var newStatus   = item['Статус_x0020_на_x0020_задачата'] || 'За изпълнение';
-          var newSupplier = item.Снабдител || '';
+          var statusObj  = item['OData__x0421__x0442__x0430__x0442__x04'];
+          var newStatus  = (statusObj && statusObj.Value) ? statusObj.Value : (typeof statusObj === 'string' ? statusObj : 'За изпълнение');
+          var newSupplier = item['OData__x0421__x043d__x0430__x0431__x04'] || '';
           if (r.status !== newStatus || r.supplier !== newSupplier) {
             if (newStatus === 'Изпълнена' && r.status !== 'Изпълнена')
               notifications.push('✅ Задача изпълнена!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
@@ -454,29 +453,28 @@ function loadFromSharePoint() {
       var allItems = data.value || [];
       console.log('Общо елементи от SP:', allItems.length);
       // ✅ Проверяваме само за ID и Title — те винаги присъстват
-      var items = allItems.filter(function(item) {
-        return item.ID && item.Title;
-      });
+      var items = allItems.filter(function(item) { return item.ID; });
       console.log('След филтър:', items.length);
-      // ✅ Защита — ако SP върне 0, не изтриваме таблицата
       if (items.length === 0) {
         showToast('⚠️ SharePoint върна 0 записа — таблицата е непроменена.', true);
         startAutoRefresh(); return;
       }
       rows = []; rowId = 0; document.getElementById('tableBody').innerHTML = '';
       items.forEach(function(item) {
+        var status = item['OData__x0421__x0442__x0430__x0442__x04'];
+        var statusVal = (status && status.Value) ? status.Value : (typeof status === 'string' ? status : 'За изпълнение');
         addRow({
           id: ++rowId, spId: item.ID, isSaving: false, _pendingFn: null,
-          specialist: item.Специалист || '',
-          firma:      item.Доставчик  || '',
-          deadline:   item['Дата_x0020_на_x0020_доставка'] ? item['Дата_x0020_на_x0020_доставка'].split('T')[0] : '',
-          direction:  item['Направление_x002f_дружество'] || '',
-          place:      item['Място_x0020_на_x0020_доставка'] || '',
-          supplier:   item.Снабдител  || '',
-          status:     item['Статус_x0020_на_x0020_задачата'] || 'За изпълнение',
-          deliveredOn: item['Доставено_x0020_на'] ? item['Доставено_x0020_на'].split('T')[0] : '',
-          note:        item.Бележка || '',
-          savedToSP:  true
+          specialist:  item['OData__x0421__x043f__x0435__x0446__x04'] || '',
+          firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
+          deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
+          direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
+          place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
+          supplier:    item['OData__x0421__x043d__x0430__x0431__x04'] || '',
+          status:      statusVal,
+          deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
+          note:        item['OData__x0411__x0435__x043b__x04'] || '',
+          savedToSP:   true
         });
       });
       unsavedRows.forEach(function(r) { r.id = ++rowId; rows.push(r); renderTableRow(r); });
