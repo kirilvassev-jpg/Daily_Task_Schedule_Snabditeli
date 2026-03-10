@@ -7,6 +7,25 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
+.login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1a3a6b, #2563eb); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.login-box { background: white; border-radius: 20px; padding: 36px 32px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+.login-logo { font-size: 40px; margin-bottom: 12px; }
+.login-box h2 { font-size: 18px; color: #1e40af; font-weight: 700; margin-bottom: 4px; }
+.login-box p { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
+.login-tabs { display: flex; background: #f1f5f9; border-radius: 10px; padding: 4px; margin-bottom: 24px; gap: 4px; }
+.login-tab { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; color: #6b7280; transition: all .2s; }
+.login-tab.active { background: white; color: #1e40af; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.login-field { margin-bottom: 16px; text-align: left; }
+.login-field label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 6px; }
+.login-field input, .login-field select { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; color: #1f2937; }
+.login-field input:focus, .login-field select:focus { border-color: #2563eb; }
+.login-btn { width: 100%; padding: 13px; background: #2563eb; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; }
+.login-btn:hover { background: #1d4ed8; }
+.login-btn.green { background: #16a34a; }
+.login-btn.green:hover { background: #15803d; }
+.login-error { color: #dc2626; font-size: 12px; margin-top: 10px; display: none; }
+.login-user-badge { position: fixed; bottom: 60px; right: 16px; background: white; border: 1px solid #e5e7eb; border-radius: 20px; padding: 5px 12px; font-size: 11px; color: #374151; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 50; cursor: pointer; }
+.login-user-badge:hover { background: #fee2e2; color: #dc2626; }
 .header { background: linear-gradient(135deg, #1a3a6b, #2563eb); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.5px; }
 .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -222,7 +241,59 @@ var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environm
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
 
-var SPECIALISTS = ['Димитрина Младенова','Димитър Йотов','Йовко Иванов','Кирил Васев','Мария Козарева','Милен Медаров','Николай Динчов','Христо Христов'];
+// ── Парола за офис (сменете с желаната парола) ────────────────────────────
+var OFFICE_PASSWORD = 'office2026';
+
+var currentUser = null, currentRole = null;
+
+function switchLoginTab(tab) {
+  document.querySelectorAll('.login-tab').forEach(function(b, i) {
+    b.classList.toggle('active', (tab === 'office' && i === 0) || (tab === 'driver' && i === 1));
+  });
+  document.getElementById('officeLogin').style.display = tab === 'office' ? 'block' : 'none';
+  document.getElementById('driverLogin').style.display = tab === 'driver' ? 'block' : 'none';
+  document.getElementById('officeError').style.display = 'none';
+  document.getElementById('driverError').style.display = 'none';
+}
+
+function loginOffice() {
+  var pwd = document.getElementById('officePassword').value;
+  if (pwd !== OFFICE_PASSWORD) {
+    document.getElementById('officeError').style.display = 'block';
+    return;
+  }
+  currentUser = 'Офис'; currentRole = 'office';
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('userBadge').style.display = 'block';
+  document.getElementById('userBadgeText').textContent = '🖥️ Офис';
+  setMode('office');
+  loadFromSharePoint();
+  startAutoRefresh();
+}
+
+function loginDriver() {
+  var name = document.getElementById('driverLoginSelect').value;
+  if (!name) { document.getElementById('driverError').style.display = 'block'; return; }
+  currentUser = name; currentRole = 'driver';
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('userBadge').style.display = 'block';
+  document.getElementById('userBadgeText').textContent = '🚚 ' + name;
+  // Скриваме офис бутона за шофьорите
+  document.querySelector('.mode-toggle').style.display = 'none';
+  setMode('driver');
+  loadFromSharePoint();
+  startAutoRefresh();
+}
+
+function logout() {
+  if (!confirm('Сигурни ли сте, че искате да излезете?')) return;
+  currentUser = null; currentRole = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('userBadge').style.display = 'none';
+  document.getElementById('officePassword').value = '';
+  document.querySelector('.mode-toggle').style.display = 'flex';
+  if (countdownTimer) clearInterval(countdownTimer);
+}
 var DIRECTIONS  = ['Администрация/Управителен съвет','Безизкопни технологии','ВиК Строителство и поддръжка','Инфраструктурно строителство','Механизация и транспорт','РаТек ООД','Строителство на сгради и съоръжения','Стройкомерс Плевен'];
 var DRIVERS     = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов','Филип Цеков'];
 
@@ -265,7 +336,12 @@ function silentRefresh() {
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      var items = (data.value || []).filter(function(item) { return item.ID; });
+      var items = (data.value || []).filter(function(item) {
+        if (!item.ID) return false;
+        var statusObj = item['OData__x0421__x0442__x0430__x0442__x04'];
+        var statusVal = (statusObj && statusObj.Value) ? statusObj.Value : (typeof statusObj === 'string' ? statusObj : 'За изпълнение');
+        return statusVal !== 'Изпълнена';
+      });
       var changed = false, notifications = [];
       items.forEach(function(item) {
         var r = rows.find(function(x) { return x.spId == item.ID; });
@@ -453,7 +529,13 @@ function loadFromSharePoint() {
       var allItems = data.value || [];
       console.log('Общо елементи от SP:', allItems.length);
       // ✅ Проверяваме само за ID и Title — те винаги присъстват
-      var items = allItems.filter(function(item) { return item.ID; });
+      var items = allItems.filter(function(item) {
+        if (!item.ID) return false;
+        // ✅ Не зареждаме изпълнените задачи — те остават само в SP като архив
+        var statusObj = item['OData__x0421__x0442__x0430__x0442__x04'];
+        var statusVal = (statusObj && statusObj.Value) ? statusObj.Value : (typeof statusObj === 'string' ? statusObj : 'За изпълнение');
+        return statusVal !== 'Изпълнена';
+      });
       console.log('След филтър:', items.length);
       if (items.length === 0) {
         showToast('⚠️ SharePoint върна 0 записа — таблицата е непроменена.', true);
@@ -633,8 +715,7 @@ function clearAll() {
   }
 }
 
-loadFromSharePoint();
-startAutoRefresh();
+// Не зареждаме автоматично — чакаме login
 </script>
 </body>
 </html>
