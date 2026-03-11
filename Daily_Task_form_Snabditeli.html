@@ -12,20 +12,13 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .login-logo { font-size: 40px; margin-bottom: 12px; }
 .login-box h2 { font-size: 18px; color: #1e40af; font-weight: 700; margin-bottom: 4px; }
 .login-box p { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
-.login-tabs { display: flex; background: #f1f5f9; border-radius: 10px; padding: 4px; margin-bottom: 24px; gap: 4px; }
-.login-tab { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; color: #6b7280; transition: all .2s; }
-.login-tab.active { background: white; color: #1e40af; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
 .login-field { margin-bottom: 16px; text-align: left; }
 .login-field label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 6px; }
-.login-field input, .login-field select { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; color: #1f2937; }
-.login-field input:focus, .login-field select:focus { border-color: #2563eb; }
+.login-field input { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; color: #1f2937; }
+.login-field input:focus { border-color: #2563eb; }
 .login-btn { width: 100%; padding: 13px; background: #2563eb; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; }
 .login-btn:hover { background: #1d4ed8; }
-.login-btn.green { background: #16a34a; }
-.login-btn.green:hover { background: #15803d; }
 .login-error { color: #dc2626; font-size: 12px; margin-top: 10px; display: none; }
-.login-user-badge { position: fixed; bottom: 60px; right: 16px; background: white; border: 1px solid #e5e7eb; border-radius: 20px; padding: 5px 12px; font-size: 11px; color: #374151; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 50; cursor: pointer; }
-.login-user-badge:hover { background: #fee2e2; color: #dc2626; }
 .header { background: linear-gradient(135deg, #1a3a6b, #2563eb); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.5px; }
 .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -124,75 +117,97 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 </head>
 <body>
 
-<div class="header">
-  <h1>📋 ЗАДАЧИ НА СНАБДИТЕЛИТЕ ЗА ДЕНЯ</h1>
-  <div class="header-right">
-    <div class="date-block">
-      <label>Дата:</label>
-      <input type="date" id="mainDate">
+<!-- ══ ЕКРАН ЗА ВХОД ══════════════════════════════════════════════════════ -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <div class="login-logo">📋</div>
+    <h2>Задачи на снабдителите</h2>
+    <p>Въведете парола за достъп</p>
+    <div class="login-field">
+      <label>Парола</label>
+      <input type="password" id="officePassword" placeholder="Въведете парола..."
+             onkeydown="if(event.key==='Enter') loginOffice()">
     </div>
-    <div class="mode-toggle">
-      <button class="mode-btn active" onclick="setMode('office')">🖥️ Офис</button>
-      <button class="mode-btn" onclick="setMode('driver')">📱 Шофьор</button>
+    <button class="login-btn" onclick="loginOffice()">🔓 Влез</button>
+    <div class="login-error" id="officeError">❌ Грешна парола!</div>
+  </div>
+</div>
+
+<!-- ══ ОСНОВНО СЪДЪРЖАНИЕ ══════════════════════════════════════════════════ -->
+<div id="appContent" style="display:none;">
+
+  <div class="header">
+    <h1>📋 ЗАДАЧИ НА СНАБДИТЕЛИТЕ ЗА ДЕНЯ</h1>
+    <div class="header-right">
+      <div class="date-block">
+        <label>Дата:</label>
+        <input type="date" id="mainDate">
+      </div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" onclick="setMode('office')">🖥️ Офис</button>
+        <button class="mode-btn" onclick="setMode('driver')">📱 Шофьор</button>
+      </div>
+      <button class="btn btn-outline" onclick="logout()" style="font-size:11px;padding:5px 10px;">🚪 Изход</button>
     </div>
   </div>
-</div>
 
-<div class="toolbar" id="officeToolbar">
-  <button class="btn btn-primary" onclick="addRow()">＋ Добави задача</button>
-  <button class="btn btn-sp" onclick="saveAllToSharePoint()">☁️ Запази всички в SharePoint</button>
-  <button class="btn btn-success" onclick="saveData()">💾 Запази локално</button>
-  <button class="btn btn-refresh" onclick="loadFromSharePoint()">🔄 Обнови</button>
-  <button class="btn btn-outline" onclick="loadData()">📂 Зареди</button>
-  <button class="btn btn-outline" onclick="window.print()">🖨️ Печат</button>
-  <button class="btn btn-danger" onclick="clearAll()">🗑️ Изчисти</button>
-</div>
+  <div class="toolbar" id="officeToolbar">
+    <button class="btn btn-primary" onclick="addRow()">＋ Добави задача</button>
+    <button class="btn btn-sp" onclick="saveAllToSharePoint()">☁️ Запази всички в SharePoint</button>
+    <button class="btn btn-success" onclick="saveData()">💾 Запази локално</button>
+    <button class="btn btn-refresh" onclick="loadFromSharePoint()">🔄 Обнови</button>
+    <button class="btn btn-outline" onclick="loadData()">📂 Зареди</button>
+    <button class="btn btn-outline" onclick="window.print()">🖨️ Печат</button>
+    <button class="btn btn-danger" onclick="clearAll()">🗑️ Изчисти</button>
+  </div>
 
-<div id="officeView">
-  <div class="table-wrap">
-    <table id="mainTable">
-      <thead>
-        <tr>
-          <th>№</th>
-          <th style="min-width:150px">Логистика Специалист</th>
-          <th style="min-width:130px">Доставчик</th>
-          <th style="min-width:100px">Дата (срок)</th>
-          <th style="min-width:180px">Направление/дружество</th>
-          <th style="min-width:140px">Място на доставка</th>
-          <th style="min-width:140px">Снабдител</th>
-          <th style="min-width:80px">Статус</th>
-          <th style="min-width:80px">SharePoint</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
+  <div id="officeView">
+    <div class="table-wrap">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th>№</th>
+            <th style="min-width:150px">Логистика Специалист</th>
+            <th style="min-width:130px">Доставчик</th>
+            <th style="min-width:100px">Дата (срок)</th>
+            <th style="min-width:180px">Направление/дружество</th>
+            <th style="min-width:140px">Място на доставка</th>
+            <th style="min-width:140px">Снабдител</th>
+            <th style="min-width:80px">Статус</th>
+            <th style="min-width:80px">SharePoint</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
   </div>
-</div>
 
-<div id="driverView" style="display:none; padding:16px;">
-  <div class="driver-header">
-    <h2>📦 Задачи за днес</h2>
-    <p>Изберете задача и потвърдете доставката</p>
+  <div id="driverView" style="display:none; padding:16px;">
+    <div class="driver-header">
+      <h2>📦 Задачи за днес</h2>
+      <p>Изберете задача и потвърдете доставката</p>
+    </div>
+    <div style="text-align:center; margin-bottom:12px;">
+      <button class="btn btn-refresh" onclick="loadFromSharePoint()">🔄 Обнови задачите</button>
+    </div>
+    <div class="cards" id="cardsContainer"></div>
   </div>
-  <div style="text-align:center; margin-bottom:12px;">
-    <button class="btn btn-refresh" onclick="loadFromSharePoint()">🔄 Обнови задачите</button>
-  </div>
-  <div class="cards" id="cardsContainer"></div>
-</div>
 
-<div class="footer">
-  <div class="stats">
-    <div class="stat"><div class="val" id="totalCount">0</div><div class="lbl">Общо</div></div>
-    <div class="stat"><div class="val" id="takenCount">0</div><div class="lbl">В процес</div></div>
-    <div class="stat"><div class="val" id="doneCount">0</div><div class="lbl">Изпълнени</div></div>
-    <div class="stat"><div class="val" id="freeCount">0</div><div class="lbl">Свободни</div></div>
+  <div class="footer">
+    <div class="stats">
+      <div class="stat"><div class="val" id="totalCount">0</div><div class="lbl">Общо</div></div>
+      <div class="stat"><div class="val" id="takenCount">0</div><div class="lbl">В процес</div></div>
+      <div class="stat"><div class="val" id="doneCount">0</div><div class="lbl">Изпълнени</div></div>
+      <div class="stat"><div class="val" id="freeCount">0</div><div class="lbl">Свободни</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span class="auto-refresh-badge">🔄 Авто-обновяване: <span id="nextRefresh">60</span>с</span>
+      <div class="last-saved">Последно запазено: <span id="lastSaved">—</span></div>
+    </div>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <span class="auto-refresh-badge">🔄 Авто-обновяване: <span id="nextRefresh">60</span>с</span>
-    <div class="last-saved">Последно запазено: <span id="lastSaved">—</span></div>
-  </div>
-</div>
+
+</div><!-- /appContent -->
 
 <!-- Модал: Поемам задача -->
 <div class="modal-overlay" id="modalOverlay">
@@ -241,12 +256,43 @@ var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environm
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
 
-// ── Парола за офис ────────────────────────────────────────────────────────
+// ── Данни ─────────────────────────────────────────────────────────────────
 var OFFICE_PASSWORD = 'Logistika@Snabditeli@2026';
 var REMEMBER_KEY    = 'office_auth';
 
+// ✅ ДОБАВЕН масив Специалисти (редактирайте по нужда)
+var SPECIALISTS = [
+  'Димитрина Младенова',
+  'Димитър Йотов',
+  'Йовко Иванов',
+  'Кирил Васев',
+  'Мария Козарева',
+  'Милен Медаров',
+  'Николай Динчов',
+  'Петя Стоицова',
+  'Таня Стоянова',
+  'Христо Христов'
+];
+
+var DIRECTIONS = [
+  'Администрация/Управителен съвет',
+  'Безизкопни технологии',
+  'ВиК Строителство и поддръжка',
+  'Инфраструктурно строителство',
+  'Механизация и транспорт',
+  'РаТек ООД',
+  'Строителство на сгради и съоръжения',
+  'Стройкомерс Плевен'
+];
+
+var DRIVERS = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов','Филип Цеков'];
+
+var rows = [], rowId = 0, pendingTakeId = null, pendingDoneId = null;
+var AUTO_REFRESH_INTERVAL = 60;
+var countdownTimer = null, secondsLeft = AUTO_REFRESH_INTERVAL;
+
+// ── Автентикация ──────────────────────────────────────────────────────────
 function checkAuth() {
-  // Проверяваме дали паролата е запомнена в браузъра
   try {
     if (localStorage.getItem(REMEMBER_KEY) === OFFICE_PASSWORD) {
       showApp(); return;
@@ -261,7 +307,6 @@ function loginOffice() {
     document.getElementById('officeError').style.display = 'block';
     return;
   }
-  // Запомняме в браузъра
   try { localStorage.setItem(REMEMBER_KEY, pwd); } catch(e) {}
   document.getElementById('loginScreen').style.display = 'none';
   showApp();
@@ -270,6 +315,7 @@ function loginOffice() {
 function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appContent').style.display  = 'block';
+  document.getElementById('mainDate').value = todayStr();
   loadFromSharePoint();
   startAutoRefresh();
 }
@@ -282,19 +328,13 @@ function logout() {
   document.getElementById('officeError').style.display = 'none';
   if (countdownTimer) clearInterval(countdownTimer);
 }
-var DIRECTIONS  = ['Администрация/Управителен съвет','Безизкопни технологии','ВиК Строителство и поддръжка','Инфраструктурно строителство','Механизация и транспорт','РаТек ООД','Строителство на сгради и съоръжения','Стройкомерс Плевен'];
-var DRIVERS     = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов','Филип Цеков'];
 
-var rows = [], rowId = 0, pendingTakeId = null, pendingDoneId = null;
-var AUTO_REFRESH_INTERVAL = 60;
-var countdownTimer = null, secondsLeft = AUTO_REFRESH_INTERVAL;
-
+// ── Помощни функции ───────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 function nowStr() {
   var n = new Date();
   return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit',minute:'2-digit'});
 }
-document.getElementById('mainDate').value = todayStr();
 
 function showToast(msg, isError) {
   var t = document.getElementById('toast');
@@ -368,13 +408,20 @@ function setMode(mode) {
 
 function makeSelect(opts, val, onch, disabled) {
   var s = '<option value="">— Изберете —</option>';
-  for (var i = 0; i < opts.length; i++) s += '<option' + (opts[i] === val ? ' selected' : '') + '>' + opts[i] + '</option>';
+  for (var i = 0; i < opts.length; i++)
+    s += '<option' + (opts[i] === val ? ' selected' : '') + '>' + opts[i] + '</option>';
   return '<select onchange="' + onch + '"' + (disabled ? ' disabled style="color:#92400e"' : '') + '>' + s + '</select>';
 }
 
+// ── Редове в таблицата ────────────────────────────────────────────────────
 function addRow(data) {
   var id = ++rowId;
-  var r = data || { id:id, spId:null, isSaving:false, _pendingFn:null, specialist:'', firma:'', deadline:'', direction:'', place:'', supplier:'', status:'За изпълнение', savedToSP:false, deliveredOn:'', note:'' };
+  var r = data || {
+    id: id, spId: null, isSaving: false, _pendingFn: null,
+    specialist: '', firma: '', deadline: '', direction: '',
+    place: '', supplier: '', status: 'За изпълнение',
+    savedToSP: false, deliveredOn: '', note: ''
+  };
   if (!r.id) r.id = id;
   if (!r.status) r.status = 'За изпълнение';
   if (r.isSaving   === undefined) r.isSaving   = false;
@@ -427,6 +474,7 @@ function collectRowData(r) {
   if (r.status === 'За изпълнение') r.supplier = sel[2] ? sel[2].value : r.supplier;
 }
 
+// ── SharePoint операции ───────────────────────────────────────────────────
 function fetchSpIdForRow(r, callback) {
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
@@ -513,18 +561,13 @@ function loadFromSharePoint() {
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      console.log('SharePoint RAW отговор:', JSON.stringify(data));
       var allItems = data.value || [];
-      console.log('Общо елементи от SP:', allItems.length);
-      // ✅ Проверяваме само за ID и Title — те винаги присъстват
       var items = allItems.filter(function(item) {
         if (!item.ID) return false;
-        // ✅ Не зареждаме изпълнените задачи — те остават само в SP като архив
         var statusObj = item['OData__x0421__x0442__x0430__x0442__x04'];
         var statusVal = (statusObj && statusObj.Value) ? statusObj.Value : (typeof statusObj === 'string' ? statusObj : 'За изпълнение');
         return statusVal !== 'Изпълнена';
       });
-      console.log('След филтър:', items.length);
       if (items.length === 0) {
         showToast('⚠️ SharePoint върна 0 записа — таблицата е непроменена.', true);
         startAutoRefresh(); return;
@@ -561,6 +604,7 @@ function loadFromSharePoint() {
     });
 }
 
+// ── Карти (шофьор) ────────────────────────────────────────────────────────
 function renderCards() {
   var container = document.getElementById('cardsContainer');
   container.innerHTML = '';
@@ -599,7 +643,7 @@ function renderCards() {
   });
 }
 
-// ── Модал: Поемам ──────────────────────────────────────────────────────────
+// ── Модали ────────────────────────────────────────────────────────────────
 function openModal(id) {
   pendingTakeId = id;
   document.getElementById('driverNameSelect').value = '';
@@ -619,7 +663,6 @@ function confirmTake() {
   updateInSharePoint(r);
 }
 
-// ── Модал: Изпълнено ───────────────────────────────────────────────────────
 function openDoneModal(id) {
   pendingDoneId = id;
   document.getElementById('deliveredOnInput').value = todayStr();
@@ -641,6 +684,7 @@ function confirmDone() {
   updateInSharePoint(r);
 }
 
+// ── Таблица / статистика ──────────────────────────────────────────────────
 function updateField(id, field, val) {
   var r = rows.find(function(x) { return x.id === id; });
   if (r) { r[field] = val; r.savedToSP = false; }
@@ -666,6 +710,7 @@ function updateStats() {
   document.getElementById('takenCount').textContent = taken;
   document.getElementById('freeCount').textContent  = free;
 }
+
 function saveData() {
   rows.forEach(function(r) { collectRowData(r); });
   var payload = { date: document.getElementById('mainDate').value, rows: rows };
@@ -703,7 +748,8 @@ function clearAll() {
   }
 }
 
-// Не зареждаме автоматично — чакаме login
+// ✅ СТАРТИРАНЕ при зареждане на страницата
+window.onload = function() { checkAuth(); };
 </script>
 </body>
 </html>
