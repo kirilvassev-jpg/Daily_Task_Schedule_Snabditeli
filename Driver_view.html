@@ -164,6 +164,60 @@ var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environm
 
 var currentDriver = null, rows = [], pendingDoneId = null;
 var countdownTimer = null, secondsLeft = 60;
+var notifPermission = false;
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function nowStr() {
+  var n = new Date();
+  return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit', minute:'2-digit'});
+}
+
+function showToast(msg, isError) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(function() { t.className = 'toast'; }, 3500);
+}
+
+// ── Push известия ──────────────────────────────────────────────────────────
+function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    notifPermission = true;
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(function(perm) {
+      notifPermission = perm === 'granted';
+    });
+  }
+}
+
+function sendPushNotif(title, body) {
+  if (!notifPermission || Notification.permission !== 'granted') return;
+  var n = new Notification(title, {
+    body: body,
+    icon: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
+    badge: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
+    tag: 'new-task',
+    renotify: true
+  });
+  n.onclick = function() { window.focus(); n.close(); };
+}
+
+function checkForNewTasks(newRows) {
+  // Намираме нови задачи които не са съществували преди
+  var oldIds = rows.map(function(r) { return r.spId; });
+  var newTasks = newRows.filter(function(r) {
+    return !oldIds.includes(r.spId) && r.status === 'За изпълнение';
+  });
+  if (newTasks.length > 0) {
+    newTasks.forEach(function(r) {
+      sendPushNotif(
+        '📦 Нова задача!',
+        (r.firma || '') + ' → ' + (r.place || '') + '\n' + (r.specialist || '')
+      );
+    });
+  }
+}
 
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 function nowStr() {
@@ -185,6 +239,8 @@ function loginDriver() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appContent').style.display = 'block';
   document.getElementById('headerDate').textContent = '👤 ' + name + ' · ' + new Date().toLocaleDateString('bg-BG');
+  // ✅ Искаме разрешение за известия след login
+  requestNotifPermission();
   loadTasks();
   startAutoRefresh();
 }
@@ -211,12 +267,10 @@ function startAutoRefresh() {
 }
 
 function loadTasks() {
-  showToast('⏳ Зареждане...');
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      var items = (data.value || []).filter(function(item) { return item.ID; });
-      rows = items.map(function(item) {
+      var newRows = (data.value || []).filter(function(item) { return item.ID; }).map(function(item) {
         var statusObj = item['OData__x0421__x0442__x0430__x0442__x04'];
         var statusVal = (statusObj && statusObj.Value) ? statusObj.Value : (typeof statusObj === 'string' ? statusObj : 'За изпълнение');
         return {
@@ -232,10 +286,12 @@ function loadTasks() {
           note:        item['OData__x0411__x0435__x043b__x04'] || ''
         };
       });
+      // ✅ Проверяваме за нови задачи и изпращаме известие
+      checkForNewTasks(newRows);
+      rows = newRows;
       renderCards();
       updateStats();
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
-      showToast('✅ Заредени ' + rows.length + ' задачи!');
     })
     .catch(function() { showToast('⚠️ Грешка при зареждане!', true); });
 }
