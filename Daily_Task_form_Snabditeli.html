@@ -241,19 +241,18 @@ var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environm
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
 
-// ── Парола за офис (сменете с желаната парола) ────────────────────────────
-var OFFICE_PASSWORD = 'office2026';
+// ── Парола за офис ────────────────────────────────────────────────────────
+var OFFICE_PASSWORD = 'Logistika@Snabditeli@2026';
+var REMEMBER_KEY    = 'office_auth';
 
-var currentUser = null, currentRole = null;
-
-function switchLoginTab(tab) {
-  document.querySelectorAll('.login-tab').forEach(function(b, i) {
-    b.classList.toggle('active', (tab === 'office' && i === 0) || (tab === 'driver' && i === 1));
-  });
-  document.getElementById('officeLogin').style.display = tab === 'office' ? 'block' : 'none';
-  document.getElementById('driverLogin').style.display = tab === 'driver' ? 'block' : 'none';
-  document.getElementById('officeError').style.display = 'none';
-  document.getElementById('driverError').style.display = 'none';
+function checkAuth() {
+  // Проверяваме дали паролата е запомнена в браузъра
+  try {
+    if (localStorage.getItem(REMEMBER_KEY) === OFFICE_PASSWORD) {
+      showApp(); return;
+    }
+  } catch(e) {}
+  document.getElementById('loginScreen').style.display = 'flex';
 }
 
 function loginOffice() {
@@ -262,36 +261,25 @@ function loginOffice() {
     document.getElementById('officeError').style.display = 'block';
     return;
   }
-  currentUser = 'Офис'; currentRole = 'office';
+  // Запомняме в браузъра
+  try { localStorage.setItem(REMEMBER_KEY, pwd); } catch(e) {}
   document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('userBadge').style.display = 'block';
-  document.getElementById('userBadgeText').textContent = '🖥️ Офис';
-  setMode('office');
-  loadFromSharePoint();
-  startAutoRefresh();
+  showApp();
 }
 
-function loginDriver() {
-  var name = document.getElementById('driverLoginSelect').value;
-  if (!name) { document.getElementById('driverError').style.display = 'block'; return; }
-  currentUser = name; currentRole = 'driver';
+function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('userBadge').style.display = 'block';
-  document.getElementById('userBadgeText').textContent = '🚚 ' + name;
-  // Скриваме офис бутона за шофьорите
-  document.querySelector('.mode-toggle').style.display = 'none';
-  setMode('driver');
+  document.getElementById('appContent').style.display  = 'block';
   loadFromSharePoint();
   startAutoRefresh();
 }
 
 function logout() {
-  if (!confirm('Сигурни ли сте, че искате да излезете?')) return;
-  currentUser = null; currentRole = null;
+  try { localStorage.removeItem(REMEMBER_KEY); } catch(e) {}
   document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('userBadge').style.display = 'none';
+  document.getElementById('appContent').style.display  = 'none';
   document.getElementById('officePassword').value = '';
-  document.querySelector('.mode-toggle').style.display = 'flex';
+  document.getElementById('officeError').style.display = 'none';
   if (countdownTimer) clearInterval(countdownTimer);
 }
 var DIRECTIONS  = ['Администрация/Управителен съвет','Безизкопни технологии','ВиК Строителство и поддръжка','Инфраструктурно строителство','Механизация и транспорт','РаТек ООД','Строителство на сгради и съоръжения','Стройкомерс Плевен'];
