@@ -392,8 +392,13 @@ function silentRefresh() {
         if (r.status !== newStatus || r.supplier !== newSupplier) {
           if (newStatus==='В процес на изпълнение' && r.status==='За изпълнение')
             notifications.push('🚚 Задача поета!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
-          else if (newStatus==='Изпълнена' && r.status!=='Изпълнена')
+          else if (newStatus==='Изпълнена' && r.status!=='Изпълнена') {
             notifications.push('✅ Задача изпълнена!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
+            // ✅ Премахваме изпълнената задача от локалния списък
+            rows = rows.filter(function(x) { return x.spId != r.spId; });
+            changed = true;
+            return;
+          }
           r.status = newStatus; r.supplier = newSupplier; r.savedToSP = true; changed = true;
         }
       });
