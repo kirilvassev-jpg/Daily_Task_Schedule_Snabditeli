@@ -656,8 +656,13 @@ function confirmDone() {
   var r = rows.find(function(x) { return x.id===pendingDoneId; });
   if (!r) { closeDoneModal(); return; }
   r.status = 'Изпълнена'; r.deliveredOn = deliveredOn; r.note = note; r.savedToSP = false;
-  closeDoneModal(); rebuildTable(); renderCards(); updateStats();
-  updateInSharePoint(r);
+  closeDoneModal();
+  updateInSharePoint(r, function() {
+    // След успешен запис в SP — премахваме от локалния списък
+    rows = rows.filter(function(x) { return x.id !== r.id; });
+    rebuildTable(); renderCards(); updateStats();
+    showToast('✅ Задачата е изпълнена и архивирана!');
+  });
 }
 
 function updateField(id, field, val) {
