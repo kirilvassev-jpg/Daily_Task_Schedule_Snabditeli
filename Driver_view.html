@@ -146,7 +146,7 @@ var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environm
 
 var rows = [], pendingTakeId = null, pendingDoneId = null;
 var countdownTimer = null, secondsLeft = 60;
-var notifGranted = false;
+var notifGranted = false, firstLoad = true;
 var audioCtx = null;
 
 document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
@@ -207,6 +207,7 @@ function showBanner(msg) {
 
 // ── Проверка за нови задачи ──
 function notifyNewTasks(newRows) {
+  if (firstLoad) return; // ← При първо зареждане не показваме банер
   var oldIds = rows.map(function(r) { return r.spId; });
   var newTasks = newRows.filter(function(r) {
     return !oldIds.includes(r.spId) && r.status === 'За изпълнение';
@@ -255,12 +256,16 @@ function loadTasks() {
       }).filter(function(r) { return r.status !== 'Изпълнена'; });
 
       notifyNewTasks(newRows);
+      firstLoad = false;
       rows = newRows;
       renderCards();
       updateStats();
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
     })
-    .catch(function() { showToast('⚠️ Грешка при зареждане!', true); });
+    .catch(function(err) {
+      console.error('Fetch error:', err);
+      showToast('⚠️ Грешка при зареждане! Проверете интернет връзката.', true);
+    });
 }
 
 // ── Render ──
