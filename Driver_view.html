@@ -288,12 +288,17 @@ function confirmDone() {
   r.status      = 'Изпълнена';
   r.deliveredOn = deliveredOn;
   r.note        = note;
-  closeDoneModal(); renderCards(); updateStats();
+  closeDoneModal();
   fetch(UPDATE_FLOW_URL, {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ id: r.spId, status: r.status, driver: r.supplier, deliveredOn: r.deliveredOn, note: r.note })
   })
-  .then(function() { showToast('✅ Задачата е изпълнена!'); })
+  .then(function() {
+    // След успешен запис — премахваме от списъка
+    rows = rows.filter(function(x) { return x.spId !== r.spId; });
+    renderCards(); updateStats();
+    showToast('✅ Задачата е изпълнена и архивирана!');
+  })
   .catch(function() { showToast('❌ Грешка при записване!', true); });
 }
 
