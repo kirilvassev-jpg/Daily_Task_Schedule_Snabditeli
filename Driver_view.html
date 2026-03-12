@@ -68,6 +68,10 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .toast { position: fixed; bottom: 24px; right: 16px; background: #1e40af; color: white; padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 280px; }
 .toast.show { display: block; }
 .toast.error { background: #dc2626; }
+/* ── In-app банер за нова задача ── */
+.new-task-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 14px 16px; z-index: 300; text-align: center; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideDown .4s ease; }
+.new-task-banner.show { display: block; }
+@keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 </style>
 </head>
 <body>
@@ -140,6 +144,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
   </div>
 </div>
 
+<div class="new-task-banner" id="newTaskBanner">📦 Нова задача е добавена!</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -148,8 +153,71 @@ var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environm
 
 var rows = [], pendingTakeId = null, pendingDoneId = null;
 var countdownTimer = null, secondsLeft = 60;
+var notifGranted = false;
+var audioCtx = null;
 
 document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
+
+// ── Звуков сигнал (Web Audio API — без файл) ──
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine'; osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+    osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
+    // Втори бийп
+    var osc2 = audioCtx.createOscillator();
+    var gain2 = audioCtx.createGain();
+    osc2.connect(gain2); gain2.connect(audioCtx.destination);
+    osc2.type = 'sine'; osc2.frequency.value = 1100;
+    gain2.gain.setValueAtTime(0.6, audioCtx.currentTime + 0.7);
+    gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+    osc2.start(audioCtx.currentTime + 0.7); osc2.stop(audioCtx.currentTime + 1.2);
+  } catch(e) {}
+}
+
+// ── Browser Push известия ──
+function requestPushPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') { notifGranted = true; return; }
+  if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(function(p) { notifGranted = p === 'granted'; });
+  }
+}
+function sendPush(title, body) {
+  if (!notifGranted || Notification.permission !== 'granted') return;
+  var n = new Notification(title, {
+    body: body,
+    icon: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
+    tag: 'new-task', renotify: true
+  });
+  n.onclick = function() { window.focus(); n.close(); };
+}
+
+// ── In-app банер ──
+function showBanner(msg) {
+  var b = document.getElementById('newTaskBanner');
+  b.textContent = msg;
+  b.classList.add('show');
+  setTimeout(function() { b.classList.remove('show'); }, 5000);
+}
+
+// ── Нотификация при нова задача ──
+function notifyNewTasks(newRows) {
+  var oldIds = rows.map(function(r) { return r.spId; });
+  var newTasks = newRows.filter(function(r) { return !oldIds.includes(r.spId) && r.status === 'За изпълнение'; });
+  if (newTasks.length > 0) {
+    playBeep();
+    showBanner('📦 ' + newTasks.length + ' нова задача!');
+    newTasks.forEach(function(r) {
+      sendPush('📦 Нова задача!', (r.firma||'') + ' → ' + (r.place||''));
+    });
+  }
+}
 
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 function nowStr() {
