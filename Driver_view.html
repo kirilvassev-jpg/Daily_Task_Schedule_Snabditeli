@@ -8,21 +8,16 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
 
-/* ── Header ── */
 .header { background: linear-gradient(135deg, #1a3a6b, #2563eb); color: white; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
 .header-left h1 { font-size: 15px; font-weight: 700; }
 .header-left p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
-
-/* ── Toolbar ── */
 .toolbar { padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
 .btn-refresh { background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .auto-badge { font-size: 10px; color: #7c3aed; font-weight: 600; padding: 3px 8px; background: #ede9fe; border-radius: 20px; }
 
-/* ── Cards ── */
 .cards-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 5px solid #93c5fd; }
 .card.taken { border-left-color: #fbbf24; background: #fffbeb; }
-.card.done  { border-left-color: #4ade80; background: #f0fdf4; opacity: 0.8; }
 .card-num { font-size: 11px; color: #9ca3af; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; }
 .card-row { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .card-field { flex: 1; min-width: 140px; }
@@ -34,22 +29,20 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .done-btn { flex: 1; padding: 12px; background: #16a34a; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
 .done-btn:hover { background: #15803d; }
 .taken-info { font-size: 12px; color: #92400e; background: #fef3c7; padding: 8px 12px; border-radius: 8px; width: 100%; }
-.done-info  { font-size: 12px; color: #065f46; background: #d1fae5; padding: 8px 12px; border-radius: 8px; width: 100%; }
-.empty-msg  { text-align: center; color: #9ca3af; padding: 60px 20px; font-size: 15px; }
+.empty-msg { text-align: center; color: #9ca3af; padding: 60px 20px; font-size: 15px; }
 
-/* ── Footer ── */
 .footer { padding: 10px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .stats { display: flex; gap: 14px; }
+.stat { text-align: center; }
 .stat .val { font-size: 18px; font-weight: 700; color: #1e40af; }
 .stat .lbl { font-size: 10px; color: #9ca3af; }
 .last-saved { font-size: 11px; color: #9ca3af; }
 
-/* ── Модал: Поемане ── */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
 .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 380px; text-align: center; }
 .modal h3 { font-size: 17px; margin-bottom: 8px; }
-.modal p  { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+.modal p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
 .input-group { text-align: left; margin-bottom: 14px; }
 .input-group label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 6px; }
 .input-group select, .input-group input, .input-group textarea {
@@ -64,17 +57,18 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .modal-confirm-done { background: #16a34a; color: white; }
 .modal-cancel { background: #f3f4f6; color: #374151; }
 
-/* ── Toast ── */
 .toast { position: fixed; bottom: 24px; right: 16px; background: #1e40af; color: white; padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 280px; }
 .toast.show { display: block; }
 .toast.error { background: #dc2626; }
-/* ── In-app банер за нова задача ── */
+
 .new-task-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 14px 16px; z-index: 300; text-align: center; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideDown .4s ease; }
 .new-task-banner.show { display: block; }
 @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 </style>
 </head>
 <body>
+
+<div class="new-task-banner" id="newTaskBanner">📦 Нова задача е добавена!</div>
 
 <div class="header">
   <div class="header-left">
@@ -102,7 +96,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
   <div class="last-saved" id="lastSaved">—</div>
 </div>
 
-<!-- Модал: Поемане на задача -->
+<!-- Модал: Поемане -->
 <div class="modal-overlay" id="takeModalOverlay">
   <div class="modal">
     <h3>🚚 Поемане на задача</h3>
@@ -144,7 +138,6 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
   </div>
 </div>
 
-<div class="new-task-banner" id="newTaskBanner">📦 Нова задача е добавена!</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -158,29 +151,35 @@ var audioCtx = null;
 
 document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
 
-// ── Звуков сигнал (Web Audio API — без файл) ──
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function nowStr() {
+  var n = new Date();
+  return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit', minute:'2-digit'});
+}
+function showToast(msg, isError) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(function() { t.className = 'toast'; }, 3500);
+}
+
+// ── Звуков сигнал ──
 function playBeep() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    var osc = audioCtx.createOscillator();
-    var gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.type = 'sine'; osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-    osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
-    // Втори бийп
-    var osc2 = audioCtx.createOscillator();
-    var gain2 = audioCtx.createGain();
-    osc2.connect(gain2); gain2.connect(audioCtx.destination);
-    osc2.type = 'sine'; osc2.frequency.value = 1100;
-    gain2.gain.setValueAtTime(0.6, audioCtx.currentTime + 0.7);
-    gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
-    osc2.start(audioCtx.currentTime + 0.7); osc2.stop(audioCtx.currentTime + 1.2);
+    [{ f:880, t:0 }, { f:1100, t:0.7 }].forEach(function(b) {
+      var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = 'sine'; osc.frequency.value = b.f;
+      gain.gain.setValueAtTime(0.6, audioCtx.currentTime + b.t);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + b.t + 0.5);
+      osc.start(audioCtx.currentTime + b.t);
+      osc.stop(audioCtx.currentTime + b.t + 0.5);
+    });
   } catch(e) {}
 }
 
-// ── Browser Push известия ──
+// ── Push известия ──
 function requestPushPermission() {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'granted') { notifGranted = true; return; }
@@ -206,10 +205,12 @@ function showBanner(msg) {
   setTimeout(function() { b.classList.remove('show'); }, 5000);
 }
 
-// ── Нотификация при нова задача ──
+// ── Проверка за нови задачи ──
 function notifyNewTasks(newRows) {
   var oldIds = rows.map(function(r) { return r.spId; });
-  var newTasks = newRows.filter(function(r) { return !oldIds.includes(r.spId) && r.status === 'За изпълнение'; });
+  var newTasks = newRows.filter(function(r) {
+    return !oldIds.includes(r.spId) && r.status === 'За изпълнение';
+  });
   if (newTasks.length > 0) {
     playBeep();
     showBanner('📦 ' + newTasks.length + ' нова задача!');
@@ -217,18 +218,6 @@ function notifyNewTasks(newRows) {
       sendPush('📦 Нова задача!', (r.firma||'') + ' → ' + (r.place||''));
     });
   }
-}
-
-function todayStr() { return new Date().toISOString().split('T')[0]; }
-function nowStr() {
-  var n = new Date();
-  return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit', minute:'2-digit'});
-}
-function showToast(msg, isError) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (isError ? ' error' : '');
-  setTimeout(function() { t.className = 'toast'; }, 3500);
 }
 
 // ── Auto refresh ──
@@ -248,12 +237,11 @@ function loadTasks() {
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      rows = (data.value || []).filter(function(item) { return item.ID; }).map(function(item) {
+      var newRows = (data.value || []).filter(function(item) { return item.ID; }).map(function(item) {
         var statusObj = item['OData__x0421__x0442__x0430__x0442__x04'];
         var statusVal = (statusObj && statusObj.Value) ? statusObj.Value : (typeof statusObj === 'string' ? statusObj : 'За изпълнение');
         return {
           spId:        item.ID,
-          specialist:  item['OData__x0421__x043f__x0435__x0446__x04'] || '',
           firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
           deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
           direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
@@ -263,7 +251,11 @@ function loadTasks() {
           deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
           note:        item['OData__x0411__x0435__x043b__x04'] || ''
         };
-      });
+      // ✅ Филтрираме изпълнените — не се показват
+      }).filter(function(r) { return r.status !== 'Изпълнена'; });
+
+      notifyNewTasks(newRows);
+      rows = newRows;
       renderCards();
       updateStats();
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
@@ -281,7 +273,7 @@ function renderCards() {
   }
   rows.forEach(function(r, idx) {
     var card = document.createElement('div');
-    card.className = 'card' + (r.status === 'В процес на изпълнение' ? ' taken' : r.status === 'Изпълнена' ? ' done' : '');
+    card.className = 'card' + (r.status === 'В процес на изпълнение' ? ' taken' : '');
     var actionsHtml = '';
     if (r.status === 'За изпълнение') {
       actionsHtml = '<button class="take-btn" onclick="openTakeModal(' + r.spId + ')">🚚 Поемам задачата</button>';
@@ -289,10 +281,6 @@ function renderCards() {
       actionsHtml =
         '<div class="taken-info">🚚 Поето от: <strong>' + r.supplier + '</strong></div>' +
         '<button class="done-btn" onclick="openDoneModal(' + r.spId + ')">✅ Изпълнено</button>';
-    } else if (r.status === 'Изпълнена') {
-      actionsHtml = '<div class="done-info">✅ Изпълнена от <strong>' + r.supplier + '</strong>' +
-        (r.deliveredOn ? ' на ' + r.deliveredOn : '') +
-        (r.note ? '<br><em>' + r.note + '</em>' : '') + '</div>';
     }
     card.innerHTML =
       '<div class="card-num">Задача №' + (idx+1) + '</div>' +
@@ -362,7 +350,7 @@ function confirmDone() {
     body: JSON.stringify({ id: r.spId, status: r.status, driver: r.supplier, deliveredOn: r.deliveredOn, note: r.note })
   })
   .then(function() {
-    // След успешен запис — премахваме от списъка
+    // ✅ След успешен запис — премахваме от списъка
     rows = rows.filter(function(x) { return x.spId !== r.spId; });
     renderCards(); updateStats();
     showToast('✅ Задачата е изпълнена и архивирана!');
@@ -372,16 +360,16 @@ function confirmDone() {
 
 // ── Stats ──
 function updateStats() {
-  var done  = rows.filter(function(r) { return r.status === 'Изпълнена'; }).length;
   var taken = rows.filter(function(r) { return r.status === 'В процес на изпълнение'; }).length;
   var free  = rows.filter(function(r) { return r.status === 'За изпълнение'; }).length;
   document.getElementById('totalCount').textContent = rows.length;
-  document.getElementById('doneCount').textContent  = done;
+  document.getElementById('doneCount').textContent  = 0;
   document.getElementById('takenCount').textContent = taken;
   document.getElementById('freeCount').textContent  = free;
 }
 
 // ── Init ──
+requestPushPermission();
 loadTasks();
 startAutoRefresh();
 </script>
