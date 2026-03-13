@@ -13,6 +13,8 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .header-left p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
 .toolbar { padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
 .btn-refresh { background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-notif { background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-notif.active { background: #16a34a; }
 .auto-badge { font-size: 10px; color: #7c3aed; font-weight: 600; padding: 3px 8px; background: #ede9fe; border-radius: 20px; }
 
 .cards-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
@@ -79,6 +81,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 
 <div class="toolbar">
   <button class="btn-refresh" onclick="loadTasks()">🔄 Обнови задачите</button>
+  <button class="btn-notif" id="notifBtn" onclick="enableNotifications()">🔔 Включи известия</button>
   <span class="auto-badge">Авто: <span id="nextRefresh">60</span>с</span>
 </div>
 
@@ -163,7 +166,51 @@ function showToast(msg, isError) {
   setTimeout(function() { t.className = 'toast'; }, 3500);
 }
 
-// ── Звуков сигнал ──
+// ── Включване на известия (изисква user gesture) ──
+function enableNotifications() {
+  // 1. Отключваме AudioContext с user gesture
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch(e) {}
+
+  // 2. Искаме Push разрешение
+  if ('Notification' in window && Notification.permission !== 'granted') {
+    Notification.requestPermission().then(function(p) {
+      notifGranted = p === 'granted';
+      updateNotifBtn();
+      if (notifGranted) showToast('✅ Известията са включени!');
+      else showToast('⚠️ Разрешението е отказано!', true);
+    });
+  } else if (Notification.permission === 'granted') {
+    notifGranted = true;
+    updateNotifBtn();
+    showToast('✅ Известията вече са включени!');
+  }
+
+  // 3. Тест звук + вибрация
+  playBeep();
+  vibrate();
+}
+
+function updateNotifBtn() {
+  var btn = document.getElementById('notifBtn');
+  if (!btn) return;
+  if (notifGranted) {
+    btn.textContent = '🔔 Известия: ВКЛ';
+    btn.classList.add('active');
+  } else {
+    btn.textContent = '🔔 Включи известия';
+    btn.classList.remove('active');
+  }
+}
+
+// ── Вибрация ──
+function vibrate() {
+  if ('vibrate' in navigator) {
+    navigator.vibrate([200, 100, 200]);
+  }
+}
 function playBeep() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -214,6 +261,7 @@ function notifyNewTasks(newRows) {
   });
   if (newTasks.length > 0) {
     playBeep();
+    vibrate();
     showBanner('📦 ' + newTasks.length + ' нова задача!');
     newTasks.forEach(function(r) {
       sendPush('📦 Нова задача!', (r.firma||'') + ' → ' + (r.place||''));
@@ -377,6 +425,11 @@ function updateStats() {
 requestPushPermission();
 loadTasks();
 startAutoRefresh();
+// Проверяваме дали вече имаме разрешение
+if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+  notifGranted = true;
+  setTimeout(updateNotifBtn, 100);
+}
 </script>
 </body>
 </html>
