@@ -12,9 +12,10 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .header-left h1 { font-size: 15px; font-weight: 700; }
 .header-left p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
 .toolbar { padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-.btn-refresh { background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.btn-notif { background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-refresh { background: #7c3aed; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-notif { background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn-notif.active { background: #16a34a; }
+.btn-test { background: #64748b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .auto-badge { font-size: 10px; color: #7c3aed; font-weight: 600; padding: 3px 8px; background: #ede9fe; border-radius: 20px; }
 
 .cards-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
@@ -80,8 +81,9 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 </div>
 
 <div class="toolbar">
-  <button class="btn-refresh" onclick="loadTasks()">🔄 Обнови задачите</button>
+  <button class="btn-refresh" onclick="loadTasks()">🔄 Обнови</button>
   <button class="btn-notif" id="notifBtn" onclick="enableNotifications()">🔔 Включи известия</button>
+  <button class="btn-test" onclick="testAll()">🧪 Тест</button>
   <span class="auto-badge">Авто: <span id="nextRefresh">60</span>с</span>
 </div>
 
@@ -166,38 +168,60 @@ function showToast(msg, isError) {
   setTimeout(function() { t.className = 'toast'; }, 3500);
 }
 
-// ── Включване на известия (изисква user gesture) ──
+// ── Включване на известия ──
 function enableNotifications() {
-  // 1. Отключваме AudioContext с user gesture
+  // Инициализираме AudioContext от user gesture
   try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-  } catch(e) {}
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().then(function() { console.log('AudioContext resumed'); });
+    }
+  } catch(e) { console.error('AudioContext error:', e); }
 
-  // 2. Искаме Push разрешение
-  if ('Notification' in window && Notification.permission !== 'granted') {
-    Notification.requestPermission().then(function(p) {
-      notifGranted = p === 'granted';
-      updateNotifBtn();
-      if (notifGranted) showToast('✅ Известията са включени!');
-      else showToast('⚠️ Разрешението е отказано!', true);
-    });
-  } else if (Notification.permission === 'granted') {
+  // Искаме Push разрешение
+  if (!('Notification' in window)) {
+    showToast('⚠️ Браузърът не поддържа известия!', true);
+    return;
+  }
+  if (Notification.permission === 'granted') {
     notifGranted = true;
     updateNotifBtn();
     showToast('✅ Известията вече са включени!');
+    playBeep(); vibrate();
+  } else {
+    Notification.requestPermission().then(function(p) {
+      notifGranted = p === 'granted';
+      updateNotifBtn();
+      if (notifGranted) {
+        showToast('✅ Известията са включени!');
+        playBeep(); vibrate();
+      } else {
+        showToast('⚠️ Отказано! Разреши ръчно от настройки на браузъра.', true);
+      }
+    });
   }
+}
 
-  // 3. Тест звук + вибрация
+// ── Тест на всичко ──
+function testAll() {
+  showBanner('📦 1 нова задача! (ТЕСТ)');
   playBeep();
   vibrate();
+  if (notifGranted) {
+    sendPush('📦 Тест известие', 'Звук + вибрация + банер работят!');
+    showToast('✅ Тестът е изпратен!');
+  } else {
+    showToast('⚠️ Натисни "Включи известия" първо!', true);
+  }
 }
 
 function updateNotifBtn() {
   var btn = document.getElementById('notifBtn');
   if (!btn) return;
   if (notifGranted) {
-    btn.textContent = '🔔 Известия: ВКЛ';
+    btn.textContent = '🔔 ВКЛ';
     btn.classList.add('active');
   } else {
     btn.textContent = '🔔 Включи известия';
@@ -207,9 +231,9 @@ function updateNotifBtn() {
 
 // ── Вибрация ──
 function vibrate() {
-  if ('vibrate' in navigator) {
-    navigator.vibrate([200, 100, 200]);
-  }
+  try {
+    if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+  } catch(e) {}
 }
 function playBeep() {
   try {
