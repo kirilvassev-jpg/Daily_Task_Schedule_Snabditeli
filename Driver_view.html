@@ -153,6 +153,28 @@ var rows = [], pendingTakeId = null, pendingDoneId = null;
 var countdownTimer = null, secondsLeft = 30;
 var notifGranted = false, firstLoad = true;
 var audioCtx = null;
+var audioUnlocked = false;
+
+// ✅ Отключваме аудиото при ПЪРВО докосване на екрана
+document.addEventListener('touchstart', function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume().then(function() {
+      audioUnlocked = true;
+      console.log('Audio unlocked');
+    });
+  } catch(e) {}
+}, { passive: true });
+
+// ✅ Също при click (за десктоп)
+document.addEventListener('click', function unlockAudioClick() {
+  if (audioUnlocked) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume().then(function() { audioUnlocked = true; });
+  } catch(e) {}
+}, { passive: true });
 
 document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
 
