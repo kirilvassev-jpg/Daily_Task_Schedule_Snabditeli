@@ -8,15 +8,16 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
 
-.header { background: linear-gradient(135deg, #1a3a6b, #2563eb); color: white; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
-.header-left h1 { font-size: 15px; font-weight: 700; }
-.header-left p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
-.toolbar { padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+.header { background: linear-gradient(135deg, #1a3a6b, #2563eb); color: white; padding: 14px 16px; }
+.header h1 { font-size: 15px; font-weight: 700; }
+.header p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+.toolbar { padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .btn-refresh { background: #7c3aed; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.btn-notif { background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.btn-notif.active { background: #16a34a; }
-.btn-test { background: #64748b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.auto-badge { font-size: 10px; color: #7c3aed; font-weight: 600; padding: 3px 8px; background: #ede9fe; border-radius: 20px; }
+.btn-notif  { background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-notif.on { background: #16a34a; }
+.btn-test   { background: #64748b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.auto-badge { font-size: 10px; color: #7c3aed; font-weight: 600; padding: 3px 8px; background: #ede9fe; border-radius: 20px; margin-left: auto; }
 
 .cards-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 5px solid #93c5fd; }
@@ -28,15 +29,12 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .card-field span { font-size: 14px; color: #1f2937; font-weight: 500; }
 .card-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
 .take-btn { flex: 1; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
-.take-btn:hover { background: #1d4ed8; }
 .done-btn { flex: 1; padding: 12px; background: #16a34a; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
-.done-btn:hover { background: #15803d; }
 .taken-info { font-size: 12px; color: #92400e; background: #fef3c7; padding: 8px 12px; border-radius: 8px; width: 100%; }
 .empty-msg { text-align: center; color: #9ca3af; padding: 60px 20px; font-size: 15px; }
 
 .footer { padding: 10px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .stats { display: flex; gap: 14px; }
-.stat { text-align: center; }
 .stat .val { font-size: 18px; font-weight: 700; color: #1e40af; }
 .stat .lbl { font-size: 10px; color: #9ca3af; }
 .last-saved { font-size: 11px; color: #9ca3af; }
@@ -45,13 +43,10 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .modal-overlay.open { display: flex; }
 .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 380px; text-align: center; }
 .modal h3 { font-size: 17px; margin-bottom: 8px; }
-.modal p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+.modal p  { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
 .input-group { text-align: left; margin-bottom: 14px; }
 .input-group label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 6px; }
-.input-group select, .input-group input, .input-group textarea {
-  width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;
-  font-size: 14px; font-family: inherit; outline: none; color: #1f2937;
-}
+.input-group select, .input-group input, .input-group textarea { width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; color: #1f2937; }
 .input-group select:focus, .input-group input:focus, .input-group textarea:focus { border-color: #2563eb; }
 .input-group textarea { resize: vertical; min-height: 70px; }
 .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
@@ -64,27 +59,25 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .toast.show { display: block; }
 .toast.error { background: #dc2626; }
 
-.new-task-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 14px 16px; z-index: 300; text-align: center; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideDown .4s ease; }
-.new-task-banner.show { display: block; }
+.new-task-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 14px 16px; z-index: 300; text-align: center; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.new-task-banner.show { display: block; animation: slideDown .4s ease; }
 @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 </style>
 </head>
 <body>
 
-<div class="new-task-banner" id="newTaskBanner">📦 Нова задача е добавена!</div>
+<div class="new-task-banner" id="newTaskBanner">📦 Нова задача!</div>
 
 <div class="header">
-  <div class="header-left">
-    <h1>📦 Задачи за днес</h1>
-    <p id="headerDate"></p>
-  </div>
+  <h1>📦 Задачи за днес</h1>
+  <p id="headerDate"></p>
 </div>
 
 <div class="toolbar">
-  <button class="btn-refresh" onclick="loadTasks()">🔄 Обнови</button>
+  <button class="btn-refresh" onclick="loadTasks(false)">🔄 Обнови</button>
   <button class="btn-notif" id="notifBtn" onclick="enableNotifications()">🔔 Включи известия</button>
   <button class="btn-test" onclick="testAll()">🧪 Тест</button>
-  <span class="auto-badge">Авто: <span id="nextRefresh">60</span>с</span>
+  <span class="auto-badge">Авто: <span id="nextRefresh">30</span>с</span>
 </div>
 
 <div class="cards-wrap" id="cardsContainer">
@@ -134,7 +127,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
     </div>
     <div class="input-group">
       <label>📝 Бележка (по желание)</label>
-      <textarea id="deliveryNoteInput" placeholder="Напр. доставено на портала, подписано от..."></textarea>
+      <textarea id="deliveryNoteInput" placeholder="Напр. доставено на портала..."></textarea>
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeDoneModal()">Отказ</button>
@@ -149,40 +142,100 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
 
-var rows = [], pendingTakeId = null, pendingDoneId = null;
+var rows        = [];
+var pendingTakeId = null, pendingDoneId = null;
 var countdownTimer = null, secondsLeft = 30;
 var notifGranted = false, firstLoad = true;
-var audioCtx = null;
-var audioUnlocked = false;
+var audioCtx = null, audioUnlocked = false;
 
-// ✅ Отключваме аудиото при ПЪРВО докосване на екрана
-document.addEventListener('touchstart', function unlockAudio() {
-  if (audioUnlocked) return;
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    audioCtx.resume().then(function() {
-      audioUnlocked = true;
-      console.log('Audio unlocked');
-    });
-  } catch(e) {}
-}, { passive: true });
+document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
 
-// ✅ Също при click (за десктоп)
-document.addEventListener('click', function unlockAudioClick() {
+// ── Отключване на аудио при докосване ──
+function unlockAudio() {
   if (audioUnlocked) return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtx.resume().then(function() { audioUnlocked = true; });
   } catch(e) {}
-}, { passive: true });
-
-document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
-
-function todayStr() { return new Date().toISOString().split('T')[0]; }
-function nowStr() {
-  var n = new Date();
-  return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit', minute:'2-digit'});
 }
+document.addEventListener('touchstart', unlockAudio, { passive: true });
+document.addEventListener('click',      unlockAudio, { passive: true });
+
+// ── Звуков сигнал ──
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var ctx = audioCtx;
+    function doBeep() {
+      [{ f:880, t:0 }, { f:1100, t:0.7 }].forEach(function(b) {
+        var osc = ctx.createOscillator(), g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = 'sine'; osc.frequency.value = b.f;
+        g.gain.setValueAtTime(0.6, ctx.currentTime + b.t);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + b.t + 0.5);
+        osc.start(ctx.currentTime + b.t);
+        osc.stop(ctx.currentTime + b.t + 0.5);
+      });
+    }
+    if (ctx.state === 'suspended') ctx.resume().then(doBeep);
+    else doBeep();
+  } catch(e) {}
+}
+
+// ── Вибрация ──
+function vibrate() {
+  try { if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]); } catch(e) {}
+}
+
+// ── Push известия ──
+function enableNotifications() {
+  unlockAudio();
+  if (!('Notification' in window)) { showToast('⚠️ Браузърът не поддържа известия!', true); return; }
+  if (Notification.permission === 'granted') {
+    notifGranted = true; updateNotifBtn();
+    showToast('✅ Известията са включени!');
+    playBeep(); vibrate();
+  } else {
+    Notification.requestPermission().then(function(p) {
+      notifGranted = p === 'granted'; updateNotifBtn();
+      if (notifGranted) { showToast('✅ Включено!'); playBeep(); vibrate(); }
+      else showToast('⚠️ Отказано — разреши от настройките!', true);
+    });
+  }
+}
+function updateNotifBtn() {
+  var btn = document.getElementById('notifBtn');
+  if (!btn) return;
+  btn.textContent = notifGranted ? '🔔 ВКЛ' : '🔔 Включи известия';
+  btn.classList.toggle('on', notifGranted);
+}
+function sendPush(title, body) {
+  if (!notifGranted || Notification.permission !== 'granted') return;
+  try {
+    var n = new Notification(title, { body: body, tag: 'new-task', renotify: true });
+    n.onclick = function() { window.focus(); n.close(); };
+  } catch(e) {}
+}
+
+// ── Тест бутон ──
+function testAll() {
+  showBanner('📦 1 нова задача! (ТЕСТ)');
+  playBeep(); vibrate();
+  if (notifGranted) sendPush('📦 Тест', 'Звук + вибрация + банер работят!');
+  showToast(notifGranted ? '✅ Тестът работи!' : '⚠️ Натисни "Включи известия" първо!', !notifGranted);
+}
+
+// ── Банер ──
+function showBanner(msg) {
+  var b = document.getElementById('newTaskBanner');
+  b.textContent = msg;
+  b.classList.remove('show');
+  void b.offsetWidth; // reflow за да се рестартира анимацията
+  b.classList.add('show');
+  setTimeout(function() { b.classList.remove('show'); }, 5000);
+}
+
+// ── Toast ──
 function showToast(msg, isError) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -190,124 +243,21 @@ function showToast(msg, isError) {
   setTimeout(function() { t.className = 'toast'; }, 3500);
 }
 
-// ── Включване на известия ──
-function enableNotifications() {
-  // Инициализираме AudioContext от user gesture
-  try {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume().then(function() { console.log('AudioContext resumed'); });
-    }
-  } catch(e) { console.error('AudioContext error:', e); }
-
-  // Искаме Push разрешение
-  if (!('Notification' in window)) {
-    showToast('⚠️ Браузърът не поддържа известия!', true);
-    return;
-  }
-  if (Notification.permission === 'granted') {
-    notifGranted = true;
-    updateNotifBtn();
-    showToast('✅ Известията вече са включени!');
-    playBeep(); vibrate();
-  } else {
-    Notification.requestPermission().then(function(p) {
-      notifGranted = p === 'granted';
-      updateNotifBtn();
-      if (notifGranted) {
-        showToast('✅ Известията са включени!');
-        playBeep(); vibrate();
-      } else {
-        showToast('⚠️ Отказано! Разреши ръчно от настройки на браузъра.', true);
-      }
-    });
-  }
-}
-
-// ── Тест на всичко ──
-function testAll() {
-  showBanner('📦 1 нова задача! (ТЕСТ)');
-  playBeep();
-  vibrate();
-  if (notifGranted) {
-    sendPush('📦 Тест известие', 'Звук + вибрация + банер работят!');
-    showToast('✅ Тестът е изпратен!');
-  } else {
-    showToast('⚠️ Натисни "Включи известия" първо!', true);
-  }
-}
-
-function updateNotifBtn() {
-  var btn = document.getElementById('notifBtn');
-  if (!btn) return;
-  if (notifGranted) {
-    btn.textContent = '🔔 ВКЛ';
-    btn.classList.add('active');
-  } else {
-    btn.textContent = '🔔 Включи известия';
-    btn.classList.remove('active');
-  }
-}
-
-// ── Вибрация ──
-function vibrate() {
-  try {
-    if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
-  } catch(e) {}
-}
-function playBeep() {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    [{ f:880, t:0 }, { f:1100, t:0.7 }].forEach(function(b) {
-      var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.type = 'sine'; osc.frequency.value = b.f;
-      gain.gain.setValueAtTime(0.6, audioCtx.currentTime + b.t);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + b.t + 0.5);
-      osc.start(audioCtx.currentTime + b.t);
-      osc.stop(audioCtx.currentTime + b.t + 0.5);
-    });
-  } catch(e) {}
-}
-
-// ── Push известия ──
-function requestPushPermission() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'granted') { notifGranted = true; return; }
-  if (Notification.permission !== 'denied') {
-    Notification.requestPermission().then(function(p) { notifGranted = p === 'granted'; });
-  }
-}
-function sendPush(title, body) {
-  if (!notifGranted || Notification.permission !== 'granted') return;
-  var n = new Notification(title, {
-    body: body,
-    icon: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
-    tag: 'new-task', renotify: true
-  });
-  n.onclick = function() { window.focus(); n.close(); };
-}
-
-// ── In-app банер ──
-function showBanner(msg) {
-  var b = document.getElementById('newTaskBanner');
-  b.textContent = msg;
-  b.classList.add('show');
-  setTimeout(function() { b.classList.remove('show'); }, 5000);
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function nowStr() {
+  var n = new Date();
+  return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit', minute:'2-digit'});
 }
 
 // ── Проверка за нови задачи ──
 function notifyNewTasks(newRows) {
-  if (firstLoad) return; // ← При първо зареждане не показваме банер
+  if (firstLoad) return;
   var oldIds = rows.map(function(r) { return r.spId; });
   var newTasks = newRows.filter(function(r) {
-    return !oldIds.includes(r.spId) && r.status === 'За изпълнение';
+    return oldIds.indexOf(r.spId) === -1 && r.status === 'За изпълнение';
   });
   if (newTasks.length > 0) {
-    playBeep();
-    vibrate();
+    playBeep(); vibrate();
     showBanner('📦 ' + newTasks.length + ' нова задача!');
     newTasks.forEach(function(r) {
       sendPush('📦 Нова задача!', (r.firma||'') + ' → ' + (r.place||''));
@@ -323,31 +273,33 @@ function startAutoRefresh() {
     secondsLeft--;
     var el = document.getElementById('nextRefresh');
     if (el) el.textContent = secondsLeft;
-    if (secondsLeft <= 0) { secondsLeft = 30; loadTasks(); }
+    if (secondsLeft <= 0) { secondsLeft = 30; loadTasks(false); }
   }, 1000);
 }
 
 // ── Load tasks ──
-function loadTasks() {
+function loadTasks(isRetry) {
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      var newRows = (data.value || []).filter(function(item) { return item.ID; }).map(function(item) {
-        var statusObj = item['OData__x0421__x0442__x0430__x0442__x04'];
-        var statusVal = (statusObj && statusObj.Value) ? statusObj.Value : (typeof statusObj === 'string' ? statusObj : 'За изпълнение');
-        return {
-          spId:        item.ID,
-          firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
-          deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
-          direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
-          place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
-          supplier:    item['OData__x0421__x043d__x0430__x0431__x04'] || '',
-          status:      statusVal,
-          deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
-          note:        item['OData__x0411__x0435__x043b__x04'] || ''
-        };
-      // ✅ Филтрираме изпълнените — не се показват
-      }).filter(function(r) { return r.status !== 'Изпълнена'; });
+      var newRows = (data.value || [])
+        .filter(function(item) { return item.ID; })
+        .map(function(item) {
+          var s = item['OData__x0421__x0442__x0430__x0442__x04'];
+          var sv = (s && s.Value) ? s.Value : (typeof s === 'string' ? s : 'За изпълнение');
+          return {
+            spId:        item.ID,
+            firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
+            deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
+            direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
+            place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
+            supplier:    item['OData__x0421__x043d__x0430__x0431__x04'] || '',
+            status:      sv,
+            deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
+            note:        item['OData__x0411__x0435__x043b__x04'] || ''
+          };
+        })
+        .filter(function(r) { return r.status !== 'Изпълнена'; });
 
       notifyNewTasks(newRows);
       firstLoad = false;
@@ -356,9 +308,12 @@ function loadTasks() {
       updateStats();
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
     })
-    .catch(function(err) {
-      console.error('Fetch error:', err);
-      showToast('⚠️ Грешка при зареждане! Проверете интернет връзката.', true);
+    .catch(function() {
+      if (!isRetry) {
+        setTimeout(function() { loadTasks(true); }, 5000);
+      } else {
+        showToast('⚠️ Грешка при зареждане!', true);
+      }
     });
 }
 
@@ -408,16 +363,14 @@ function closeTakeModal() {
 }
 function confirmTake() {
   var driver = document.getElementById('takeDriverSelect').value;
-  if (!driver) { showToast('❌ Моля изберете вашето име!', true); return; }
+  if (!driver) { showToast('❌ Изберете вашето име!', true); return; }
   var r = rows.find(function(x) { return x.spId == pendingTakeId; });
   if (!r) { closeTakeModal(); return; }
-  r.supplier = driver;
-  r.status   = 'В процес на изпълнение';
-  closeTakeModal();
-  renderCards(); updateStats();
+  r.supplier = driver; r.status = 'В процес на изпълнение';
+  closeTakeModal(); renderCards(); updateStats();
   fetch(UPDATE_FLOW_URL, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ id: r.spId, status: r.status, driver: r.supplier, deliveredOn: null, note: '' })
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:null, note:'' })
   })
   .then(function() { showToast('✅ Задачата е поета!'); })
   .catch(function() { showToast('❌ Грешка при записване!', true); });
@@ -436,23 +389,20 @@ function closeDoneModal() {
 }
 function confirmDone() {
   var deliveredOn = document.getElementById('deliveredOnInput').value;
-  var note        = document.getElementById('deliveryNoteInput').value.trim();
+  var note = document.getElementById('deliveryNoteInput').value.trim();
   if (!deliveredOn) { alert('Моля въведете дата!'); return; }
   var r = rows.find(function(x) { return x.spId == pendingDoneId; });
   if (!r) { closeDoneModal(); return; }
-  r.status      = 'Изпълнена';
-  r.deliveredOn = deliveredOn;
-  r.note        = note;
+  r.status = 'Изпълнена'; r.deliveredOn = deliveredOn; r.note = note;
   closeDoneModal();
   fetch(UPDATE_FLOW_URL, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ id: r.spId, status: r.status, driver: r.supplier, deliveredOn: r.deliveredOn, note: r.note })
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note })
   })
   .then(function() {
-    // ✅ След успешен запис — премахваме от списъка
     rows = rows.filter(function(x) { return x.spId !== r.spId; });
     renderCards(); updateStats();
-    showToast('✅ Задачата е изпълнена и архивирана!');
+    showToast('✅ Изпълнена и архивирана!');
   })
   .catch(function() { showToast('❌ Грешка при записване!', true); });
 }
@@ -468,14 +418,12 @@ function updateStats() {
 }
 
 // ── Init ──
-requestPushPermission();
-loadTasks();
-startAutoRefresh();
-// Проверяваме дали вече имаме разрешение
 if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
   notifGranted = true;
   setTimeout(updateNotifBtn, 100);
 }
+loadTasks(false);
+startAutoRefresh();
 </script>
 </body>
 </html>
