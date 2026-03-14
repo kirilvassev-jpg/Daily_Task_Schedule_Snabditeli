@@ -304,6 +304,7 @@ function loadTasks(retryCount) {
             direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
             place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
             supplier:    item['OData__x0421__x043d__x0430__x0431__x04'] || '',
+            officeNote:  item['OData__x0411__x0435__x043b__x04'] || '',
             status:      sv,
             deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
             note:        item['OData__x0411__x0435__x043b__x04'] || ''
@@ -360,7 +361,8 @@ function renderCards() {
         '<div class="card-field"><label>Място на доставка</label><span>' + (r.place||'—') + '</span></div>' +
         '<div class="card-field"><label>Срок</label><span>' + (r.deadline||'—') + '</span></div>' +
       '</div>' +
-      '<div class="card-actions">' + actionsHtml + '</div>';
+      '<div class="card-actions">' + actionsHtml + '</div>' +
+      (r.officeNote ? '<div style="margin-top:8px;padding:8px 10px;background:#ede9fe;border-radius:8px;font-size:12px;color:#5b21b6">📝 <strong>Бележка:</strong> ' + r.officeNote + '</div>' : '');
     container.appendChild(card);
   });
 }
