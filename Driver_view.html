@@ -310,7 +310,16 @@ function loadTasks(retryCount) {
             note:        item['OData__x0411__x0435__x043b__x04'] || ''
           };
         })
-        .filter(function(r) { return r.status !== 'Изпълнена'; });
+        .filter(function(r) { return r.status !== 'Изпълнена'; })
+        .map(function(r) {
+          // ✅ Ако задачата чака потвърждение от SP — запазваме локалния статус
+          var pending = pendingSpIds.find(function(p) { return p.spId == r.spId; });
+          if (pending) {
+            r.status   = pending.status;
+            r.supplier = pending.supplier;
+          }
+          return r;
+        });
 
       // ✅ Известията се показват САМО след успешно зареждане
       notifyNewTasks(newRows);
