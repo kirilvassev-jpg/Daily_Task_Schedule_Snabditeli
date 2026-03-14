@@ -277,10 +277,20 @@ function startAutoRefresh() {
   }, 1000);
 }
 
-// ── Load tasks ──
-function loadTasks(isRetry) {
-  fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
-    .then(function(res) { return res.json(); })
+// ── Load tasks с retry ──
+function loadTasks(retryCount) {
+  if (retryCount === undefined) retryCount = 0;
+
+  var controller = window.AbortController ? new AbortController() : null;
+  var timer = controller ? setTimeout(function() { controller.abort(); }, 20000) : null;
+  var opts = { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' };
+  if (controller) opts.signal = controller.signal;
+
+  fetch(GET_FLOW_URL, opts)
+    .then(function(res) {
+      if (timer) clearTimeout(timer);
+      return res.json();
+    })
     .then(function(data) {
       var newRows = (data.value || [])
         .filter(function(item) { return item.ID; })
@@ -301,6 +311,7 @@ function loadTasks(isRetry) {
         })
         .filter(function(r) { return r.status !== 'Изпълнена'; });
 
+      // ✅ Известията се показват САМО след успешно зареждане
       notifyNewTasks(newRows);
       firstLoad = false;
       rows = newRows;
@@ -309,10 +320,13 @@ function loadTasks(isRetry) {
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
     })
     .catch(function() {
-      if (!isRetry) {
-        setTimeout(function() { loadTasks(true); }, 5000);
+      if (timer) clearTimeout(timer);
+      if (retryCount < 3) {
+        // ✅ Опитваме до 3 пъти с нарастващо изчакване (3с, 6с, 10с)
+        var delay = [3000, 6000, 10000][retryCount];
+        setTimeout(function() { loadTasks(retryCount + 1); }, delay);
       } else {
-        showToast('⚠️ Грешка при зареждане!', true);
+        showToast('⚠️ Няма връзка. Ще опитам при следващото обновяване.', true);
       }
     });
 }
@@ -422,7 +436,7 @@ if (typeof Notification !== 'undefined' && Notification.permission === 'granted'
   notifGranted = true;
   setTimeout(updateNotifBtn, 100);
 }
-loadTasks(false);
+loadTasks(0);
 startAutoRefresh();
 </script>
 </body>
