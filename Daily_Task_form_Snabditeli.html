@@ -520,10 +520,10 @@ function updateInSharePoint(r, callback) {
     body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn||null, note:r.note||'' })
   })
   .then(function() {
-    r.savedToSP = true; rebuildTable();
-    showToast('✅ Статусът е обновен!');
+    r.savedToSP = true;
     document.getElementById('lastSaved').textContent = nowStr();
     if (callback) callback();
+    else { rebuildTable(); showToast('✅ Статусът е обновен!'); }
   })
   .catch(function() { showToast('❌ Грешка при обновяване!', true); });
 }
@@ -663,7 +663,6 @@ function confirmDone() {
   r.status = 'Изпълнена'; r.deliveredOn = deliveredOn; r.note = note; r.savedToSP = false;
   closeDoneModal();
   updateInSharePoint(r, function() {
-    // След успешен запис в SP — премахваме от локалния списък
     rows = rows.filter(function(x) { return x.id !== r.id; });
     rebuildTable(); renderCards(); updateStats();
     showToast('✅ Задачата е изпълнена и архивирана!');
