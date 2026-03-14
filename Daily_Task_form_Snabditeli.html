@@ -545,7 +545,7 @@ function updateInSharePoint(r, callback) {
   if (!r.spId) { saveRowToSharePoint(r.id, callback); return; }
   fetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn||null, note:r.note||'' })
+    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn||null, note:r.note||'', officeNote:r.officeNote||'' })
   })
   .then(function() {
     r.savedToSP = true;
