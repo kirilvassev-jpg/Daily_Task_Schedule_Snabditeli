@@ -150,7 +150,7 @@ var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environm
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
 
 var rows = [], pendingTakeId = null, pendingDoneId = null;
-var countdownTimer = null, secondsLeft = 60;
+var countdownTimer = null, secondsLeft = 30;
 var notifGranted = false, firstLoad = true;
 var audioCtx = null;
 
@@ -296,12 +296,12 @@ function notifyNewTasks(newRows) {
 // ── Auto refresh ──
 function startAutoRefresh() {
   if (countdownTimer) clearInterval(countdownTimer);
-  secondsLeft = 60;
+  secondsLeft = 30;
   countdownTimer = setInterval(function() {
     secondsLeft--;
     var el = document.getElementById('nextRefresh');
     if (el) el.textContent = secondsLeft;
-    if (secondsLeft <= 0) { secondsLeft = 60; loadTasks(); }
+    if (secondsLeft <= 0) { secondsLeft = 30; loadTasks(); }
   }, 1000);
 }
 
