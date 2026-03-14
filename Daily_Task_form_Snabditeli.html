@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+var DIRECTIONS  = ['Всички направления',<!DOCTYPE html>
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
@@ -58,7 +58,13 @@ tbody td { padding: 5px 4px; border: 1px solid #e5e7eb; vertical-align: middle; 
 td.num { text-align: center; font-weight: 700; color: #6b7280; font-size: 11px; width: 30px; }
 td input[type="text"], td input[type="date"], td select { width: 100%; border: none; background: transparent; font-size: 12px; padding: 3px 5px; font-family: inherit; outline: none; color: #1f2937; cursor: pointer; }
 td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
-/* ── Снабдител клетка — read-only ── */
+/* ── Табло снабдители ── */
+.driver-card { background:white; border-radius:10px; padding:10px 14px; box-shadow:0 2px 6px rgba(0,0,0,0.07); border-left:4px solid #4ade80; min-width:160px; flex:1; max-width:220px; }
+.driver-card.busy { border-left-color:#fbbf24; background:#fffbeb; }
+.driver-card-name { font-size:13px; font-weight:700; color:#1f2937; margin-bottom:3px; }
+.driver-card-status { font-size:11px; color:#16a34a; font-weight:600; }
+.driver-card.busy .driver-card-status { color:#92400e; }
+.driver-card-task { font-size:10px; color:#6b7280; margin-top:3px; line-height:1.4; }
 .supplier-cell { font-size: 12px; padding: 3px 6px; color: #1f2937; font-weight: 500; }
 .supplier-cell.empty { color: #9ca3af; font-style: italic; }
 .supplier-cell.taken { color: #92400e; font-weight: 700; }
@@ -190,6 +196,12 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
   <button class="btn btn-danger" onclick="clearAll()">🗑️ Изчисти</button>
 </div>
 
+<!-- Табло снабдители -->
+<div id="driverStatusPanel" style="padding:12px 16px; background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+  <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:8px;">👥 Статус на снабдителите</div>
+  <div id="driverStatusCards" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+</div>
+
 <div id="officeView">
   <div class="table-wrap">
     <table id="mainTable">
@@ -288,7 +300,26 @@ var OFFICE_PASSWORD = 'office2026';
 var currentUser = null, currentRole = null;
 
 var SPECIALISTS = ['Димитрина Младенова','Димитър Йотов','Йовко Иванов','Кирил Васев','Мария Козарева','Милен Медаров','Николай Динчов','Христо Христов'];
-var DIRECTIONS  = ['Всички направления','Администрация/Управителен съвет','Безизкопни технологии','ВиК Строителство и поддръжка','Инфраструктурно строителство','Механизация и транспорт','РаТек ООД','Строителство на сгради и съоръжения','Стройкомерс Плевен'];
+var DRIVERS = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов','Филип Цеков'];
+
+function updateDriverStatus() {
+  var container = document.getElementById('driverStatusCards');
+  if (!container) return;
+  container.innerHTML = '';
+  DRIVERS.forEach(function(name) {
+    // Намираме активна задача на този снабдител
+    var activeTask = rows.find(function(r) {
+      return r.supplier === name && r.status === 'В процес на изпълнение';
+    });
+    var card = document.createElement('div');
+    card.className = 'driver-card' + (activeTask ? ' busy' : '');
+    card.innerHTML =
+      '<div class="driver-card-name">🚚 ' + name.split(' ')[0] + ' ' + name.split(' ')[1] + '</div>' +
+      '<div class="driver-card-status">' + (activeTask ? '🟡 Зает' : '🟢 Свободен') + '</div>' +
+      (activeTask ? '<div class="driver-card-task">📦 ' + (activeTask.firma||'—') + '<br>📍 ' + (activeTask.place||'—') + '</div>' : '');
+    container.appendChild(card);
+  });
+}'Администрация/Управителен съвет','Безизкопни технологии','ВиК Строителство и поддръжка','Инфраструктурно строителство','Механизация и транспорт','РаТек ООД','Строителство на сгради и съоръжения','Стройкомерс Плевен'];
 
 var rows = [], rowId = 0, pendingTakeId = null, pendingDoneId = null;
 var countdownTimer = null, secondsLeft = 60;
@@ -693,6 +724,7 @@ function updateStats() {
   document.getElementById('doneCount').textContent  = done;
   document.getElementById('takenCount').textContent = taken;
   document.getElementById('freeCount').textContent  = free;
+  updateDriverStatus();
 }
 function saveData() {
   rows.forEach(function(r) { collectRowData(r); });
