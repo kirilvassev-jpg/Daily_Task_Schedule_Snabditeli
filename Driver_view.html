@@ -400,6 +400,25 @@ function confirmTake() {
       if (res.ok) {
         showToast('✅ Задачата е поета!');
         setTimeout(function() { delete lockedIds[spId]; }, 30000);
+      } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+        // ✅ Power Automate е заспал — опитваме след 5 секунди
+        showToast('⏳ Сървърът се събужда, опитвам пак...', false);
+        setTimeout(function() {
+          fetch(UPDATE_FLOW_URL, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:'', note:'' })
+          })
+          .then(function(res2) {
+            if (res2.ok) {
+              showToast('✅ Задачата е поета!');
+              setTimeout(function() { delete lockedIds[spId]; }, 30000);
+            } else {
+              showToast('❌ Грешка: ' + res2.status, true);
+              delete lockedIds[spId];
+            }
+          })
+          .catch(function() { showToast('❌ Грешка при повторен опит!', true); delete lockedIds[spId]; });
+        }, 5000);
       } else {
         showToast('❌ SP грешка: ' + res.status, true);
         delete lockedIds[spId];
