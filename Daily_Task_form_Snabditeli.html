@@ -402,16 +402,20 @@ function silentRefresh() {
     .then(function(res) { return res.json(); })
     .then(function(data) {
       var changed = false, notifications = [];
-      var items = (data.value||[]).filter(function(item) { return item.ID; });
-      console.log('silentRefresh: SP върна', items.length, 'записа, локално имаме', rows.length);
-      items.forEach(function(item) {
+      var allItems = (data.value||[]).filter(function(item) { return item.ID; });
+      var activeSpIds = [];
+
+      allItems.forEach(function(item) {
         var s = item['OData__x0421__x0442__x0430__x0442__x04'];
         var newStatus   = (s && s.Value) ? s.Value : (typeof s==='string' ? s : 'За изпълнение');
         var newSupplier = item['OData__x0421__x043d__x0430__x0431__x04'] || '';
-        if (newStatus === 'Изпълнена') return;
+
+        if (newStatus === 'Изпълнена') return; // пропускаме изпълнените
+
+        activeSpIds.push(item.ID);
         var r = rows.find(function(x) { return x.spId == item.ID; });
         if (!r) {
-          // ✅ Нова задача — добавяме я
+          // ✅ Нова задача от шофьор
           addRow({
             id:++rowId, spId:item.ID, isSaving:false, _pendingFn:null,
             specialist:  item['OData__x0421__x043f__x0435__x0446__x04'] || '',
@@ -431,14 +435,22 @@ function silentRefresh() {
         } else if (r.status !== newStatus || r.supplier !== newSupplier) {
           if (newStatus==='В процес на изпълнение' && r.status==='За изпълнение')
             notifications.push('🚚 Задача поета!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
-          else if (newStatus==='Изпълнена' && r.status!=='Изпълнена') {
-            notifications.push('✅ Задача изпълнена!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
-            rows = rows.filter(function(x) { return x.spId != r.spId; });
-            changed = true; return;
-          }
           r.status = newStatus; r.supplier = newSupplier; r.savedToSP = true; changed = true;
         }
       });
+
+      // ✅ Задачи които вече ги няма в SP (станали са Изпълнена) — премахваме ги
+      var toRemove = rows.filter(function(r) {
+        return r.spId && activeSpIds.indexOf(r.spId) === -1;
+      });
+      if (toRemove.length > 0) {
+        toRemove.forEach(function(r) {
+          notifications.push('✅ Задача изпълнена!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + r.supplier + '</strong></small>');
+        });
+        rows = rows.filter(function(r) { return !r.spId || activeSpIds.indexOf(r.spId) !== -1; });
+        changed = true;
+      }
+
       if (changed) {
         rebuildTable(); updateStats();
         if (document.getElementById('driverView').style.display!=='none') renderCards();
