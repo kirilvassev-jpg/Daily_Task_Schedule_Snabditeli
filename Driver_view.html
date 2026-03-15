@@ -391,8 +391,7 @@ function confirmTake() {
       status: 'В процес на изпълнение',
       driver: driver,
       deliveredOn: '',
-      note: '',
-      officeNote: r.officeNote || ''
+      note: ''
     })
   })
   .then(function(res) {
@@ -444,7 +443,7 @@ function confirmDone() {
   closeDoneModal();
   fetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note, officeNote:r.officeNote||'' })
+    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note })
   })
   .then(function() {
     rows = rows.filter(function(x) { return x.spId !== r.spId; });
