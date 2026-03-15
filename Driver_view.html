@@ -374,22 +374,45 @@ function confirmTake() {
   var r = null;
   for (var i = 0; i < rows.length; i++) { if (rows[i].spId == pendingTakeId) { r = rows[i]; break; } }
   if (!r) { closeTakeModal(); return; }
+
+  var spId = r.spId; // ✅ Запазваме spId преди async операцията
   r.supplier = driver;
   r.status   = 'В процес на изпълнение';
-  // ✅ Заключваме задачата докато SP потвърди
-  lockedIds[r.spId] = { status: r.status, supplier: r.supplier };
+  lockedIds[spId] = { status: r.status, supplier: r.supplier };
+
   closeTakeModal();
   renderCards(); updateStats();
+  showToast('⏳ Записване...');
+
   fetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:null, note:'', officeNote:r.officeNote||'' })
+    body: JSON.stringify({
+      id: spId,
+      status: 'В процес на изпълнение',
+      driver: driver,
+      deliveredOn: '',
+      note: '',
+      officeNote: r.officeNote || ''
+    })
   })
-  .then(function() {
-    delete lockedIds[r.spId]; // ✅ Отключваме след потвърждение
+  .then(function(res) {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     showToast('✅ Задачата е поета!');
+    // ✅ Отключваме след 30 секунди (когато SP вече е обновен)
+    setTimeout(function() { delete lockedIds[spId]; }, 30000);
   })
-  .catch(function() {
-    delete lockedIds[r.spId];
+  .catch(function(err) {
+    console.error('Take error:', err);
+    delete lockedIds[spId];
+    // Връщаме задачата обратно при грешка
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].spId == spId) {
+        rows[i].status = 'За изпълнение';
+        rows[i].supplier = '';
+        break;
+      }
+    }
+    renderCards(); updateStats();
     showToast('❌ Грешка при записване!', true);
   });
 }
