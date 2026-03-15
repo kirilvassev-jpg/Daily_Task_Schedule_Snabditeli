@@ -402,7 +402,9 @@ function silentRefresh() {
     .then(function(res) { return res.json(); })
     .then(function(data) {
       var changed = false, notifications = [];
-      (data.value||[]).filter(function(item) { return item.ID; }).forEach(function(item) {
+      var items = (data.value||[]).filter(function(item) { return item.ID; });
+      console.log('silentRefresh: SP върна', items.length, 'записа, локално имаме', rows.length);
+      items.forEach(function(item) {
         var s = item['OData__x0421__x0442__x0430__x0442__x04'];
         var newStatus   = (s && s.Value) ? s.Value : (typeof s==='string' ? s : 'За изпълнение');
         var newSupplier = item['OData__x0421__x043d__x0430__x0431__x04'] || '';
