@@ -450,7 +450,20 @@ function updateDriverStatus() {
 }
 
 // ── Table ──
-function makeSelect(opts, val, onch) {
+function deadlineClass(deadline) {
+  if (!deadline) return 'deadline-ok';
+  var today = new Date(); today.setHours(0,0,0,0);
+  var d = new Date(deadline); d.setHours(0,0,0,0);
+  if (d < today) return 'deadline-overdue';
+  if (d.getTime() === today.getTime()) return 'deadline-today';
+  return 'deadline-ok';
+}
+function deadlineLabel(deadline) {
+  if (!deadline) return '—';
+  var cls = deadlineClass(deadline);
+  var icon = cls === 'deadline-overdue' ? '🔴 ' : cls === 'deadline-today' ? '🟡 ' : '';
+  return '<span class="' + cls + '">' + icon + deadline + '</span>';
+}
   var s = '<option value="">— Изберете —</option>';
   opts.forEach(function(o) { s += '<option' + (o===val?' selected':'') + '>' + o + '</option>'; });
   return '<select onchange="' + onch + '">' + s + '</select>';
@@ -496,7 +509,7 @@ function renderTableRow(r) {
     '<td class="num">' + (rows.indexOf(r)+1) + '</td>' +
     '<td>' + makeSelect(SPECIALISTS, r.specialist, 'updateField(' + r.id + ',\'specialist\',this.value)') + '</td>' +
     '<td><input type="text" placeholder="Доставчик" value="' + (r.firma||'') + '" onchange="updateField(' + r.id + ',\'firma\',this.value)"></td>' +
-    '<td><input type="date" value="' + (r.deadline||'') + '" onchange="updateField(' + r.id + ',\'deadline\',this.value)"></td>' +
+    '<td style="text-align:center">' + deadlineLabel(r.deadline) + '<br><input type="date" value="' + (r.deadline||'') + '" onchange="updateField(' + r.id + ',\'deadline\',this.value);rebuildTable()" style="font-size:10px;width:100%;border:none;background:transparent;outline:none;cursor:pointer"></td>' +
     '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)') + '</td>' +
     '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)"></td>' +
     '<td><input type="text" placeholder="Бележка към шофьора..." value="' + (r.officeNote||'') + '" onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed"></td>' +
