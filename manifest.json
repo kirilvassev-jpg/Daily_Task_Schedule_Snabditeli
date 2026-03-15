@@ -1,0 +1,22 @@
+{
+  "name": "Задачи Снабдители",
+  "short_name": "Задачи",
+  "description": "Задачи за снабдители",
+  "start_url": "/Daily_Task_Schedule_Snabditeli/Driver_view.html",
+  "display": "standalone",
+  "background_color": "#1a3a6b",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
