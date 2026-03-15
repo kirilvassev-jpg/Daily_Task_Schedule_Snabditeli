@@ -710,11 +710,13 @@ function updateStats() {
 function saveData() {
   rows.forEach(function(r) { collectRowData(r); });
   var payload = { date: document.getElementById('mainDate').value, rows: rows };
-  var blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'zadachi_' + (payload.date||'export') + '.json';
-  a.click();
+  try {
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'zadachi_' + (payload.date||'export') + '.json';
+    a.click();
+  } catch(e) { showToast('❌ Грешка при запазване!', true); }
 }
 function loadData() {
   var inp = document.createElement('input');
