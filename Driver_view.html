@@ -247,7 +247,16 @@ function testAll() {
   showToast(notifGranted ? '✅ Тестът работи!' : '⚠️ Натисни "Включи известия" първо!', !notifGranted);
 }
 
-// ── Нови задачи ──
+// ── Badge на иконката ──
+function updateBadge(count) {
+  if ('setAppBadge' in navigator) {
+    if (count > 0) {
+      navigator.setAppBadge(count).catch(function() {});
+    } else {
+      navigator.clearAppBadge().catch(function() {});
+    }
+  }
+}
 function notifyNewTasks(newRows) {
   if (firstLoad) return;
   var newTasks = newRows.filter(function(r) {
@@ -483,6 +492,7 @@ function updateStats() {
   document.getElementById('doneCount').textContent  = 0;
   document.getElementById('takenCount').textContent = taken;
   document.getElementById('freeCount').textContent  = free;
+  updateBadge(free);
 }
 
 // ── Init ──
