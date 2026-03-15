@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Задачи - Снабдител</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Задачи">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
@@ -484,6 +489,14 @@ function updateStats() {
 if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
   notifGranted = true;
   setTimeout(updateNotifBtn, 100);
+}
+// ── Service Worker регистрация ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    console.log('SW регистриран:', reg.scope);
+  }).catch(function(err) {
+    console.log('SW грешка:', err);
+  });
 }
 loadTasks(0);
 startAutoRefresh();
