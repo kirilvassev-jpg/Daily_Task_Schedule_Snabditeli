@@ -403,12 +403,30 @@ function silentRefresh() {
     .then(function(data) {
       var changed = false, notifications = [];
       (data.value||[]).filter(function(item) { return item.ID; }).forEach(function(item) {
-        var r = rows.find(function(x) { return x.spId == item.ID; });
-        if (!r) return;
         var s = item['OData__x0421__x0442__x0430__x0442__x04'];
         var newStatus   = (s && s.Value) ? s.Value : (typeof s==='string' ? s : 'За изпълнение');
         var newSupplier = item['OData__x0421__x043d__x0430__x0431__x04'] || '';
-        if (r.status !== newStatus || r.supplier !== newSupplier) {
+        if (newStatus === 'Изпълнена') return;
+        var r = rows.find(function(x) { return x.spId == item.ID; });
+        if (!r) {
+          // ✅ Нова задача — добавяме я
+          addRow({
+            id:++rowId, spId:item.ID, isSaving:false, _pendingFn:null,
+            specialist:  item['OData__x0421__x043f__x0435__x0446__x04'] || '',
+            firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
+            deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
+            direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
+            place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
+            supplier:    newSupplier,
+            officeNote:  item['OData__x0411__x0435__x043b__x0435__x04'] || '',
+            status:      newStatus,
+            deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
+            note:        item['OData__x0411__x0435__x043b__x04'] || '',
+            savedToSP:   true
+          });
+          notifications.push('🚚 Нова задача от шофьор!<br><small>' + (item['OData__x0414__x043e__x0441__x0442__x04']||'') + ' → ' + (item['OData__x041c__x044f__x0441__x0442__x04']||'') + '</small>');
+          changed = true;
+        } else if (r.status !== newStatus || r.supplier !== newSupplier) {
           if (newStatus==='В процес на изпълнение' && r.status==='За изпълнение')
             notifications.push('🚚 Задача поета!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
           else if (newStatus==='Изпълнена' && r.status!=='Изпълнена') {
