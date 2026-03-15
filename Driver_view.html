@@ -237,7 +237,14 @@ function showToast(msg, isError) {
   setTimeout(function() { t.className = 'toast'; }, 3500);
 }
 
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+function deadlineLabel(deadline) {
+  if (!deadline) return '—';
+  var today = new Date(); today.setHours(0,0,0,0);
+  var d = new Date(deadline); d.setHours(0,0,0,0);
+  if (d < today) return '🔴 ' + deadline;
+  if (d.getTime() === today.getTime()) return '🟡 ' + deadline;
+  return deadline;
+}
 function nowStr() {
   var n = new Date();
   return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit', minute:'2-digit'});
@@ -350,7 +357,7 @@ function renderCards() {
       '</div>' +
       '<div class="card-row">' +
         '<div class="card-field"><label>Място на доставка</label><span>' + (r.place||'—') + '</span></div>' +
-        '<div class="card-field"><label>Срок</label><span>' + (r.deadline||'—') + '</span></div>' +
+        '<div class="card-field"><label>Срок</label><span>' + deadlineLabel(r.deadline) + '</span></div>' +
       '</div>' +
       '<div class="card-actions">' + actionsHtml + '</div>' +
       noteHtml;
