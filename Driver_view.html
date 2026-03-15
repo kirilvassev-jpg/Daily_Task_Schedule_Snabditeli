@@ -390,30 +390,35 @@ function confirmTake() {
       id: spId,
       status: 'В процес на изпълнение',
       driver: driver,
-      deliveredOn: '',
+      deliveredOn: null,
       note: '',
       officeNote: r.officeNote || ''
     })
   })
   .then(function(res) {
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    showToast('✅ Задачата е поета!');
-    // ✅ Отключваме след 30 секунди (когато SP вече е обновен)
-    setTimeout(function() { delete lockedIds[spId]; }, 30000);
+    res.text().then(function(txt) {
+      console.log('SP response status:', res.status, 'body:', txt);
+      if (res.ok) {
+        showToast('✅ Задачата е поета!');
+        setTimeout(function() { delete lockedIds[spId]; }, 30000);
+      } else {
+        showToast('❌ SP грешка: ' + res.status, true);
+        delete lockedIds[spId];
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i].spId == spId) { rows[i].status = 'За изпълнение'; rows[i].supplier = ''; break; }
+        }
+        renderCards(); updateStats();
+      }
+    });
   })
   .catch(function(err) {
-    console.error('Take error:', err);
+    console.error('Fetch грешка:', err);
     delete lockedIds[spId];
-    // Връщаме задачата обратно при грешка
     for (var i = 0; i < rows.length; i++) {
-      if (rows[i].spId == spId) {
-        rows[i].status = 'За изпълнение';
-        rows[i].supplier = '';
-        break;
-      }
+      if (rows[i].spId == spId) { rows[i].status = 'За изпълнение'; rows[i].supplier = ''; break; }
     }
     renderCards(); updateStats();
-    showToast('❌ Грешка при записване!', true);
+    showToast('❌ Мрежова грешка: ' + err.message, true);
   });
 }
 
