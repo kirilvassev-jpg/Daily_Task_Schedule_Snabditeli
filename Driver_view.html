@@ -14,9 +14,9 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 
 .toolbar { padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .btn-refresh { background: #7c3aed; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.btn-notif  { background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-notif { background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn-notif.on { background: #16a34a; }
-.btn-test   { background: #64748b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-test { background: #64748b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .auto-badge { font-size: 10px; color: #7c3aed; font-weight: 600; padding: 3px 8px; background: #ede9fe; border-radius: 20px; margin-left: auto; }
 
 .cards-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
@@ -31,6 +31,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .take-btn { flex: 1; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
 .done-btn { flex: 1; padding: 12px; background: #16a34a; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
 .taken-info { font-size: 12px; color: #92400e; background: #fef3c7; padding: 8px 12px; border-radius: 8px; width: 100%; }
+.office-note { margin-top: 8px; padding: 8px 10px; background: #ede9fe; border-radius: 8px; font-size: 12px; color: #5b21b6; }
 .empty-msg { text-align: center; color: #9ca3af; padding: 60px 20px; font-size: 15px; }
 
 .footer { padding: 10px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -43,11 +44,10 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .modal-overlay.open { display: flex; }
 .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 380px; text-align: center; }
 .modal h3 { font-size: 17px; margin-bottom: 8px; }
-.modal p  { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+.modal p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
 .input-group { text-align: left; margin-bottom: 14px; }
 .input-group label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 6px; }
 .input-group select, .input-group input, .input-group textarea { width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; color: #1f2937; }
-.input-group select:focus, .input-group input:focus, .input-group textarea:focus { border-color: #2563eb; }
 .input-group textarea { resize: vertical; min-height: 70px; }
 .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
 .modal-btns button { flex: 1; padding: 11px; border-radius: 8px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; }
@@ -58,7 +58,6 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .toast { position: fixed; bottom: 24px; right: 16px; background: #1e40af; color: white; padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 280px; }
 .toast.show { display: block; }
 .toast.error { background: #dc2626; }
-
 .new-task-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 14px 16px; z-index: 300; text-align: center; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 .new-task-banner.show { display: block; animation: slideDown .4s ease; }
 @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
@@ -74,7 +73,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 </div>
 
 <div class="toolbar">
-  <button class="btn-refresh" onclick="loadTasks(false)">🔄 Обнови</button>
+  <button class="btn-refresh" onclick="loadTasks(0)">🔄 Обнови</button>
   <button class="btn-notif" id="notifBtn" onclick="enableNotifications()">🔔 Включи известия</button>
   <button class="btn-test" onclick="testAll()">🧪 Тест</button>
   <span class="auto-badge">Авто: <span id="nextRefresh">30</span>с</span>
@@ -98,7 +97,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 <div class="modal-overlay" id="takeModalOverlay">
   <div class="modal">
     <h3>🚚 Поемане на задача</h3>
-    <p>Изберете вашето име</p>
+    <p>Изберете вашето ime</p>
     <div class="input-group">
       <label>👤 Снабдител</label>
       <select id="takeDriverSelect">
@@ -142,15 +141,16 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
 
-var rows        = [];
+var rows = [];
 var pendingTakeId = null, pendingDoneId = null;
 var countdownTimer = null, secondsLeft = 30;
 var notifGranted = false, firstLoad = true;
 var audioCtx = null, audioUnlocked = false;
+var lockedIds = {}; // spId -> {status, supplier} — заключени докато SP потвърди
 
 document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
 
-// ── Отключване на аудио при докосване ──
+// ── Аудио ──
 function unlockAudio() {
   if (audioUnlocked) return;
   try {
@@ -159,9 +159,8 @@ function unlockAudio() {
   } catch(e) {}
 }
 document.addEventListener('touchstart', unlockAudio, { passive: true });
-document.addEventListener('click',      unlockAudio, { passive: true });
+document.addEventListener('click', unlockAudio, { passive: true });
 
-// ── Звуков сигнал ──
 function playBeep() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -177,12 +176,10 @@ function playBeep() {
         osc.stop(ctx.currentTime + b.t + 0.5);
       });
     }
-    if (ctx.state === 'suspended') ctx.resume().then(doBeep);
-    else doBeep();
+    if (ctx.state === 'suspended') ctx.resume().then(doBeep); else doBeep();
   } catch(e) {}
 }
 
-// ── Вибрация ──
 function vibrate() {
   try { if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]); } catch(e) {}
 }
@@ -193,13 +190,12 @@ function enableNotifications() {
   if (!('Notification' in window)) { showToast('⚠️ Браузърът не поддържа известия!', true); return; }
   if (Notification.permission === 'granted') {
     notifGranted = true; updateNotifBtn();
-    showToast('✅ Известията са включени!');
-    playBeep(); vibrate();
+    showToast('✅ Известията са включени!'); playBeep(); vibrate();
   } else {
     Notification.requestPermission().then(function(p) {
       notifGranted = p === 'granted'; updateNotifBtn();
       if (notifGranted) { showToast('✅ Включено!'); playBeep(); vibrate(); }
-      else showToast('⚠️ Отказано — разреши от настройките!', true);
+      else showToast('⚠️ Отказано!', true);
     });
   }
 }
@@ -216,12 +212,10 @@ function sendPush(title, body) {
     n.onclick = function() { window.focus(); n.close(); };
   } catch(e) {}
 }
-
-// ── Тест бутон ──
 function testAll() {
   showBanner('📦 1 нова задача! (ТЕСТ)');
   playBeep(); vibrate();
-  if (notifGranted) sendPush('📦 Тест', 'Звук + вибрация + банер работят!');
+  if (notifGranted) sendPush('📦 Тест', 'Работи!');
   showToast(notifGranted ? '✅ Тестът работи!' : '⚠️ Натисни "Включи известия" първо!', !notifGranted);
 }
 
@@ -230,7 +224,7 @@ function showBanner(msg) {
   var b = document.getElementById('newTaskBanner');
   b.textContent = msg;
   b.classList.remove('show');
-  void b.offsetWidth; // reflow за да се рестартира анимацията
+  void b.offsetWidth;
   b.classList.add('show');
   setTimeout(function() { b.classList.remove('show'); }, 5000);
 }
@@ -249,19 +243,20 @@ function nowStr() {
   return n.toLocaleDateString('bg-BG') + ' ' + n.toLocaleTimeString('bg-BG', {hour:'2-digit', minute:'2-digit'});
 }
 
-// ── Проверка за нови задачи ──
+// ── Нови задачи ──
 function notifyNewTasks(newRows) {
   if (firstLoad) return;
-  var oldIds = rows.map(function(r) { return r.spId; });
   var newTasks = newRows.filter(function(r) {
-    return oldIds.indexOf(r.spId) === -1 && r.status === 'За изпълнение';
+    var isNew = true;
+    for (var i = 0; i < rows.length; i++) { if (rows[i].spId == r.spId) { isNew = false; break; } }
+    return isNew && r.status === 'За изпълнение';
   });
   if (newTasks.length > 0) {
     playBeep(); vibrate();
     showBanner('📦 ' + newTasks.length + ' нова задача!');
-    newTasks.forEach(function(r) {
-      sendPush('📦 Нова задача!', (r.firma||'') + ' → ' + (r.place||''));
-    });
+    for (var i = 0; i < newTasks.length; i++) {
+      sendPush('📦 Нова задача!', (newTasks[i].firma||'') + ' → ' + (newTasks[i].place||''));
+    }
   }
 }
 
@@ -273,55 +268,42 @@ function startAutoRefresh() {
     secondsLeft--;
     var el = document.getElementById('nextRefresh');
     if (el) el.textContent = secondsLeft;
-    if (secondsLeft <= 0) { secondsLeft = 30; loadTasks(false); }
+    if (secondsLeft <= 0) { secondsLeft = 30; loadTasks(0); }
   }, 1000);
 }
 
-// ── Load tasks с retry ──
+// ── Load tasks ──
 function loadTasks(retryCount) {
-  if (retryCount === undefined) retryCount = 0;
-
-  var controller = window.AbortController ? new AbortController() : null;
-  var timer = controller ? setTimeout(function() { controller.abort(); }, 20000) : null;
-  var opts = { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' };
-  if (controller) opts.signal = controller.signal;
-
-  fetch(GET_FLOW_URL, opts)
-    .then(function(res) {
-      if (timer) clearTimeout(timer);
-      return res.json();
-    })
+  fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
+    .then(function(res) { return res.json(); })
     .then(function(data) {
-      var newRows = (data.value || [])
-        .filter(function(item) { return item.ID; })
-        .map(function(item) {
-          var s = item['OData__x0421__x0442__x0430__x0442__x04'];
-          var sv = (s && s.Value) ? s.Value : (typeof s === 'string' ? s : 'За изпълнение');
-          return {
-            spId:        item.ID,
-            firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
-            deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
-            direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
-            place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
-            supplier:    item['OData__x0421__x043d__x0430__x0431__x04'] || '',
-            officeNote:  item['OData__x0411__x0435__x043b__x0435__x04'] || '',
-            status:      sv,
-            deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
-            note:        item['OData__x0411__x0435__x043b__x04'] || ''
-          };
-        })
-        .filter(function(r) { return r.status !== 'Изпълнена'; })
-        .map(function(r) {
-          // ✅ Ако задачата чака потвърждение от SP — запазваме локалния статус
-          var pending = pendingSpIds.find(function(p) { return p.spId == r.spId; });
-          if (pending) {
-            r.status   = pending.status;
-            r.supplier = pending.supplier;
-          }
-          return r;
-        });
-
-      // ✅ Известията се показват САМО след успешно зареждане
+      var newRows = [];
+      var items = data.value || [];
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        if (!item.ID) continue;
+        var s = item['OData__x0421__x0442__x0430__x0442__x04'];
+        var sv = (s && s.Value) ? s.Value : (typeof s === 'string' ? s : 'За изпълнение');
+        if (sv === 'Изпълнена') continue;
+        var r = {
+          spId:        item.ID,
+          firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
+          deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
+          direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
+          place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
+          supplier:    item['OData__x0421__x043d__x0430__x0431__x04'] || '',
+          officeNote:  item['OData__x0411__x0435__x043b__x0435__x04'] || '',
+          status:      sv,
+          deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
+          note:        item['OData__x0411__x0435__x043b__x04'] || ''
+        };
+        // ✅ Ако задачата е заключена локално — запазваме локалния статус
+        if (lockedIds[r.spId]) {
+          r.status   = lockedIds[r.spId].status;
+          r.supplier = lockedIds[r.spId].supplier;
+        }
+        newRows.push(r);
+      }
       notifyNewTasks(newRows);
       firstLoad = false;
       rows = newRows;
@@ -330,13 +312,11 @@ function loadTasks(retryCount) {
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
     })
     .catch(function() {
-      if (timer) clearTimeout(timer);
       if (retryCount < 3) {
-        // ✅ Опитваме до 3 пъти с нарастващо изчакване (3с, 6с, 10с)
-        var delay = [3000, 6000, 10000][retryCount];
+        var delay = [3000, 6000, 10000][retryCount] || 10000;
         setTimeout(function() { loadTasks(retryCount + 1); }, delay);
       } else {
-        showToast('⚠️ Няма връзка. Ще опитам при следващото обновяване.', true);
+        showToast('⚠️ Грешка при зареждане!', true);
       }
     });
 }
@@ -349,7 +329,8 @@ function renderCards() {
     container.innerHTML = '<div class="empty-msg">✅ Няма задачи за днес</div>';
     return;
   }
-  rows.forEach(function(r, idx) {
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
     var card = document.createElement('div');
     card.className = 'card' + (r.status === 'В процес на изпълнение' ? ' taken' : '');
     var actionsHtml = '';
@@ -360,8 +341,9 @@ function renderCards() {
         '<div class="taken-info">🚚 Поето от: <strong>' + r.supplier + '</strong></div>' +
         '<button class="done-btn" onclick="openDoneModal(' + r.spId + ')">✅ Изпълнено</button>';
     }
+    var noteHtml = r.officeNote ? '<div class="office-note">📝 <strong>Бележка:</strong> ' + r.officeNote + '</div>' : '';
     card.innerHTML =
-      '<div class="card-num">Задача №' + (idx+1) + '</div>' +
+      '<div class="card-num">Задача №' + (i+1) + '</div>' +
       '<div class="card-row">' +
         '<div class="card-field"><label>Доставчик</label><span>' + (r.firma||'—') + '</span></div>' +
         '<div class="card-field"><label>Направление</label><span>' + (r.direction||'—') + '</span></div>' +
@@ -371,9 +353,9 @@ function renderCards() {
         '<div class="card-field"><label>Срок</label><span>' + (r.deadline||'—') + '</span></div>' +
       '</div>' +
       '<div class="card-actions">' + actionsHtml + '</div>' +
-      (r.officeNote ? '<div style="margin-top:8px;padding:8px 10px;background:#ede9fe;border-radius:8px;font-size:12px;color:#5b21b6">📝 <strong>Бележка:</strong> ' + r.officeNote + '</div>' : '');
+      noteHtml;
     container.appendChild(card);
-  });
+  }
 }
 
 // ── Take modal ──
@@ -388,17 +370,28 @@ function closeTakeModal() {
 }
 function confirmTake() {
   var driver = document.getElementById('takeDriverSelect').value;
-  if (!driver) { showToast('❌ Изберете вашето име!', true); return; }
-  var r = rows.find(function(x) { return x.spId == pendingTakeId; });
+  if (!driver) { showToast('❌ Изберете вашето ime!', true); return; }
+  var r = null;
+  for (var i = 0; i < rows.length; i++) { if (rows[i].spId == pendingTakeId) { r = rows[i]; break; } }
   if (!r) { closeTakeModal(); return; }
-  r.supplier = driver; r.status = 'В процес на изпълнение';
-  closeTakeModal(); renderCards(); updateStats();
+  r.supplier = driver;
+  r.status   = 'В процес на изпълнение';
+  // ✅ Заключваме задачата докато SP потвърди
+  lockedIds[r.spId] = { status: r.status, supplier: r.supplier };
+  closeTakeModal();
+  renderCards(); updateStats();
   fetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:null, note:'' })
+    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:null, note:'', officeNote:r.officeNote||'' })
   })
-  .then(function() { showToast('✅ Задачата е поета!'); })
-  .catch(function() { showToast('❌ Грешка при записване!', true); });
+  .then(function() {
+    delete lockedIds[r.spId]; // ✅ Отключваме след потвърждение
+    showToast('✅ Задачата е поета!');
+  })
+  .catch(function() {
+    delete lockedIds[r.spId];
+    showToast('❌ Грешка при записване!', true);
+  });
 }
 
 // ── Done modal ──
@@ -416,13 +409,14 @@ function confirmDone() {
   var deliveredOn = document.getElementById('deliveredOnInput').value;
   var note = document.getElementById('deliveryNoteInput').value.trim();
   if (!deliveredOn) { alert('Моля въведете дата!'); return; }
-  var r = rows.find(function(x) { return x.spId == pendingDoneId; });
+  var r = null;
+  for (var i = 0; i < rows.length; i++) { if (rows[i].spId == pendingDoneId) { r = rows[i]; break; } }
   if (!r) { closeDoneModal(); return; }
   r.status = 'Изпълнена'; r.deliveredOn = deliveredOn; r.note = note;
   closeDoneModal();
   fetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note })
+    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note, officeNote:r.officeNote||'' })
   })
   .then(function() {
     rows = rows.filter(function(x) { return x.spId !== r.spId; });
@@ -434,8 +428,11 @@ function confirmDone() {
 
 // ── Stats ──
 function updateStats() {
-  var taken = rows.filter(function(r) { return r.status === 'В процес на изпълнение'; }).length;
-  var free  = rows.filter(function(r) { return r.status === 'За изпълнение'; }).length;
+  var taken = 0, free = 0;
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].status === 'В процес на изпълнение') taken++;
+    else if (rows[i].status === 'За изпълнение') free++;
+  }
   document.getElementById('totalCount').textContent = rows.length;
   document.getElementById('doneCount').textContent  = 0;
   document.getElementById('takenCount').textContent = taken;
