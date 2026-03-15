@@ -406,7 +406,7 @@ function confirmTake() {
         setTimeout(function() {
           fetch(UPDATE_FLOW_URL, {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:'', note:'' })
+            body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'' })
           })
           .then(function(res2) {
             if (res2.ok) {
