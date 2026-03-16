@@ -76,7 +76,9 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 .sp-saved { font-size: 10px; color: #16a34a; font-weight: 600; }
 .del-btn { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 4px; }
 .del-btn:hover { background: #fee2e2; }
-/* ── Срок индикатор ── */
+/* ── Admin only ── */
+.admin-only { display: none; }
+.is-admin .admin-only { display: inline-flex; }
 .deadline-ok      { color: #1f2937; }
 .deadline-today   { color: #d97706; font-weight: 700; }
 .deadline-overdue { color: #dc2626; font-weight: 700; }
@@ -240,7 +242,21 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 </div>
 </div>
 
-<!-- Модал: Поемам -->
+<!-- Модал: Редактирай място -->
+<div class="modal-overlay" id="editModalOverlay">
+  <div class="modal">
+    <h3>✏️ Корекция на адрес</h3>
+    <p>Коригирайте мястото на доставка</p>
+    <div class="input-group">
+      <label>📍 Място на доставка</label>
+      <input type="text" id="editPlaceInput" placeholder="Адрес / обект">
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeEditModal()">Отказ</button>
+      <button class="modal-confirm green" onclick="confirmEdit()">✅ Запази</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h3>🚚 Поемам задача</h3>
@@ -292,7 +308,7 @@ var currentUser = null, currentRole = null;
 var SPECIALISTS = ['Димитрина Младенова','Димитър Йотов','Йовко Иванов','Кирил Васев','Мария Козарева','Милен Медаров','Николай Динчов','Христо Христов'];
 var DIRECTIONS  = ['Всички направления','Администрация/Управителен съвет','Безизкопни технологии','ВиК Строителство и поддръжка','Инфраструктурно строителство','Механизация и транспорт','РаТек ООД','Строителство на сгради и съоръжения','Стройкомерс Плевен'];
 var DRIVERS     = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов','Филип Цеков'];
-var rows = [], rowId = 0, pendingTakeId = null, pendingDoneId = null;
+var rows = [], rowId = 0, pendingTakeId = null, pendingDoneId = null, pendingEditId = null;
 var countdownTimer = null, secondsLeft = 60;
 
 document.getElementById('mainDate').value = new Date().toISOString().split('T')[0];
@@ -342,13 +358,23 @@ function switchLoginTab(tab) {
   document.getElementById('driverError').style.display = 'none';
 }
 function loginOffice() {
-  if (document.getElementById('officePassword').value !== OFFICE_PASSWORD) {
+  var pwd = document.getElementById('officePassword').value;
+  if (pwd === ADMIN_PASSWORD) {
+    currentUser = 'Админ'; currentRole = 'admin';
+  } else if (pwd === OFFICE_PASSWORD) {
+    currentUser = 'Офис'; currentRole = 'office';
+  } else {
     document.getElementById('officeError').style.display = 'block'; return;
   }
-  currentUser = 'Офис'; currentRole = 'office';
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appContent').style.display = 'block';
   document.getElementById('modeToggle').style.display = 'flex';
+  // ✅ Показваме admin бутони само за админ
+  if (currentRole === 'admin') {
+    document.getElementById('appContent').classList.add('is-admin');
+  } else {
+    document.getElementById('appContent').classList.remove('is-admin');
+  }
   setMode('office');
   loadFromSharePoint();
   startAutoRefresh();
@@ -529,7 +555,7 @@ function renderTableRow(r) {
     '<td><input type="text" placeholder="Доставчик" value="' + (r.firma||'') + '" onchange="updateField(' + r.id + ',\'firma\',this.value)"></td>' +
     '<td><span class="' + dlClass + '">' + dlIcon + '</span><input type="date" value="' + (r.deadline||'') + '" onchange="updateField(' + r.id + ',\'deadline\',this.value)"></td>' +
     '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)') + '</td>' +
-    '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)"></td>' +
+    '<td style="white-space:nowrap"><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)">' + (r.savedToSP ? '<button title="Корекция в SP" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px" onclick="openEditModal(' + r.id + ')">✏️</button>' : '') + '</td>' +
     '<td><input type="text" placeholder="Бележка към шофьора..." value="' + (r.officeNote||'') + '" onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed"></td>' +
     '<td style="text-align:center">' + supplierHtml + '</td>' +
     '<td style="text-align:center">' + badge + '</td>' +
@@ -669,7 +695,29 @@ function renderCards() {
   });
 }
 
-function openModal(id) {
+// ── Модал: Редактирай място ──
+function openEditModal(id) {
+  var r = rows.find(function(x) { return x.id===id; });
+  if (!r) return;
+  pendingEditId = id;
+  document.getElementById('editPlaceInput').value = r.place || '';
+  document.getElementById('editModalOverlay').classList.add('open');
+}
+function closeEditModal() {
+  document.getElementById('editModalOverlay').classList.remove('open');
+  pendingEditId = null;
+}
+function confirmEdit() {
+  var newPlace = document.getElementById('editPlaceInput').value.trim();
+  if (!newPlace) { showToast('❌ Моля въведете адрес!', true); return; }
+  var r = rows.find(function(x) { return x.id===pendingEditId; });
+  if (!r) { closeEditModal(); return; }
+  r.place = newPlace; r.savedToSP = false;
+  closeEditModal(); rebuildTable(); updateStats();
+  updateInSharePoint(r, function() {
+    showToast('✅ Адресът е коригиран!');
+  });
+}
   pendingTakeId = id;
   document.getElementById('driverNameSelect').value = currentRole==='driver' ? currentUser : '';
   document.getElementById('modalOverlay').classList.add('open');
