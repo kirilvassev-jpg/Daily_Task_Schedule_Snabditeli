@@ -42,7 +42,6 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .btn-success { background: #16a34a; color: white; }
 .btn-outline { background: white; color: #374151; border: 1px solid #d1d5db; }
 .btn-danger { background: #dc2626; color: white; }
-/* ── Табло снабдители ── */
 .driver-status-panel { padding: 12px 16px; background: #f0f9ff; border-bottom: 2px solid #bae6fd; }
 .driver-status-title { font-size: 12px; font-weight: 700; color: #0369a1; margin-bottom: 8px; }
 .driver-status-cards { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -76,13 +75,10 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 .sp-saved { font-size: 10px; color: #16a34a; font-weight: 600; }
 .del-btn { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 4px; }
 .del-btn:hover { background: #fee2e2; }
-/* ── Admin only ── */
-.admin-only { display: none; }
-.is-admin .admin-only { display: inline-flex; }
+.edit-btn { background: none; border: none; cursor: pointer; font-size: 14px; padding: 3px 4px; }
 .deadline-ok      { color: #1f2937; }
 .deadline-today   { color: #d97706; font-weight: 700; }
 .deadline-overdue { color: #dc2626; font-weight: 700; }
-/* ── Driver cards ── */
 .cards { display: flex; flex-direction: column; gap: 12px; }
 .card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 5px solid #93c5fd; }
 .card.taken { border-left-color: #fbbf24; }
@@ -151,7 +147,7 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
     </div>
     <div id="driverLogin" style="display:none">
       <div class="login-field">
-        <label>👤 Вашето име</label>
+        <label>👤 Вашето ime</label>
         <select id="driverLoginSelect">
           <option value="">— Изберете —</option>
           <option>Ангел Драгомиров</option>
@@ -161,7 +157,7 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
         </select>
       </div>
       <button class="login-btn green" onclick="loginDriver()">🚚 Влез като Шофьор</button>
-      <div class="login-error" id="driverError">❌ Моля изберете вашето име!</div>
+      <div class="login-error" id="driverError">❌ Моля изберете вашето ime!</div>
     </div>
   </div>
 </div>
@@ -257,6 +253,8 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
     </div>
   </div>
 </div>
+
+<!-- Модал: Поемам -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h3>🚚 Поемам задача</h3>
@@ -330,8 +328,6 @@ function showNotif(msg, isTaken) {
   n.className = 'notif show' + (isTaken ? ' taken' : '');
   setTimeout(function() { n.className = 'notif'; }, 6000);
 }
-
-// ── Срок индикатор ──
 function deadlineClass(deadline) {
   if (!deadline) return '';
   var today = new Date(); today.setHours(0,0,0,0);
@@ -358,23 +354,13 @@ function switchLoginTab(tab) {
   document.getElementById('driverError').style.display = 'none';
 }
 function loginOffice() {
-  var pwd = document.getElementById('officePassword').value;
-  if (pwd === ADMIN_PASSWORD) {
-    currentUser = 'Админ'; currentRole = 'admin';
-  } else if (pwd === OFFICE_PASSWORD) {
-    currentUser = 'Офис'; currentRole = 'office';
-  } else {
+  if (document.getElementById('officePassword').value !== OFFICE_PASSWORD) {
     document.getElementById('officeError').style.display = 'block'; return;
   }
+  currentUser = 'Офис'; currentRole = 'office';
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appContent').style.display = 'block';
   document.getElementById('modeToggle').style.display = 'flex';
-  // ✅ Показваме admin бутони само за админ
-  if (currentRole === 'admin') {
-    document.getElementById('appContent').classList.add('is-admin');
-  } else {
-    document.getElementById('appContent').classList.remove('is-admin');
-  }
   setMode('office');
   loadFromSharePoint();
   startAutoRefresh();
@@ -430,18 +416,14 @@ function silentRefresh() {
       var changed = false, notifications = [];
       var allItems = (data.value||[]).filter(function(item) { return item.ID; });
       var activeSpIds = [];
-
       allItems.forEach(function(item) {
         var s = item['OData__x0421__x0442__x0430__x0442__x04'];
         var newStatus   = (s && s.Value) ? s.Value : (typeof s==='string' ? s : 'За изпълнение');
         var newSupplier = item['OData__x0421__x043d__x0430__x0431__x04'] || '';
-
-        if (newStatus === 'Изпълнена') return; // пропускаме изпълнените
-
+        if (newStatus === 'Изпълнена') return;
         activeSpIds.push(item.ID);
         var r = rows.find(function(x) { return x.spId == item.ID; });
         if (!r) {
-          // ✅ Нова задача от шофьор
           addRow({
             id:++rowId, spId:item.ID, isSaving:false, _pendingFn:null,
             specialist:  item['OData__x0421__x043f__x0435__x0446__x04'] || '',
@@ -464,11 +446,7 @@ function silentRefresh() {
           r.status = newStatus; r.supplier = newSupplier; r.savedToSP = true; changed = true;
         }
       });
-
-      // ✅ Задачи които вече ги няма в SP (станали са Изпълнена) — премахваме ги
-      var toRemove = rows.filter(function(r) {
-        return r.spId && activeSpIds.indexOf(r.spId) === -1;
-      });
+      var toRemove = rows.filter(function(r) { return r.spId && activeSpIds.indexOf(r.spId) === -1; });
       if (toRemove.length > 0) {
         toRemove.forEach(function(r) {
           notifications.push('✅ Задача изпълнена!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + r.supplier + '</strong></small>');
@@ -476,7 +454,6 @@ function silentRefresh() {
         rows = rows.filter(function(r) { return !r.spId || activeSpIds.indexOf(r.spId) !== -1; });
         changed = true;
       }
-
       if (changed) {
         rebuildTable(); updateStats();
         if (document.getElementById('driverView').style.display!=='none') renderCards();
@@ -549,13 +526,14 @@ function renderTableRow(r) {
     : '<span class="supplier-cell empty">— очаква се —</span>';
   var dlClass = deadlineClass(r.deadline);
   var dlIcon  = deadlineIcon(r.deadline);
+  var editBtn = r.savedToSP ? '<button class="edit-btn" title="Коригирай адрес" onclick="openEditModal(' + r.id + ')">✏️</button>' : '';
   tr.innerHTML =
     '<td class="num">' + (rows.indexOf(r)+1) + '</td>' +
     '<td>' + makeSelect(SPECIALISTS, r.specialist, 'updateField(' + r.id + ',\'specialist\',this.value)') + '</td>' +
     '<td><input type="text" placeholder="Доставчик" value="' + (r.firma||'') + '" onchange="updateField(' + r.id + ',\'firma\',this.value)"></td>' +
     '<td><span class="' + dlClass + '">' + dlIcon + '</span><input type="date" value="' + (r.deadline||'') + '" onchange="updateField(' + r.id + ',\'deadline\',this.value)"></td>' +
     '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)') + '</td>' +
-    '<td style="white-space:nowrap"><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)">' + (r.savedToSP ? '<button title="Корекция в SP" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px" onclick="openEditModal(' + r.id + ')">✏️</button>' : '') + '</td>' +
+    '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)">' + editBtn + '</td>' +
     '<td><input type="text" placeholder="Бележка към шофьора..." value="' + (r.officeNote||'') + '" onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed"></td>' +
     '<td style="text-align:center">' + supplierHtml + '</td>' +
     '<td style="text-align:center">' + badge + '</td>' +
@@ -678,8 +656,8 @@ function renderCards() {
         '<div class="taken-info">🚚 Поето от: <strong>' + r.supplier + '</strong></div>' +
         '<button class="done-btn" onclick="openDoneModal(' + r.id + ')">✅ Изпълнено</button>';
     }
-    var dlLabel = deadlineIcon(r.deadline) + (r.deadline||'—');
     var noteHtml = r.officeNote ? '<div style="margin-top:8px;padding:8px 10px;background:#ede9fe;border-radius:8px;font-size:12px;color:#5b21b6">📝 <strong>Бележка:</strong> ' + r.officeNote + '</div>' : '';
+    var dlLabel = deadlineIcon(r.deadline) + (r.deadline||'—');
     card.innerHTML =
       '<div class="card-num">Задача №' + (idx+1) + '</div>' +
       '<div class="card-row">' +
@@ -713,11 +691,15 @@ function confirmEdit() {
   var r = rows.find(function(x) { return x.id===pendingEditId; });
   if (!r) { closeEditModal(); return; }
   r.place = newPlace; r.savedToSP = false;
-  closeEditModal(); rebuildTable(); updateStats();
+  closeEditModal();
   updateInSharePoint(r, function() {
+    rebuildTable(); updateStats();
     showToast('✅ Адресът е коригиран!');
   });
 }
+
+// ── Модал: Поемам ──
+function openModal(id) {
   pendingTakeId = id;
   document.getElementById('driverNameSelect').value = currentRole==='driver' ? currentUser : '';
   document.getElementById('modalOverlay').classList.add('open');
@@ -736,6 +718,7 @@ function confirmTake() {
   updateInSharePoint(r);
 }
 
+// ── Модал: Изпълнено ──
 function openDoneModal(id) {
   pendingDoneId = id;
   document.getElementById('deliveredOnInput').value = todayStr();
@@ -790,13 +773,11 @@ function updateStats() {
 function saveData() {
   rows.forEach(function(r) { collectRowData(r); });
   var payload = { date: document.getElementById('mainDate').value, rows: rows };
-  try {
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'zadachi_' + (payload.date||'export') + '.json';
-    a.click();
-  } catch(e) { showToast('❌ Грешка при запазване!', true); }
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'zadachi_' + (payload.date||'export') + '.json';
+  a.click();
 }
 function loadData() {
   var inp = document.createElement('input');
