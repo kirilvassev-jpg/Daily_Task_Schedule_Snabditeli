@@ -534,7 +534,7 @@ function renderTableRow(r) {
     '<td><span class="' + dlClass + '">' + dlIcon + '</span><input type="date" value="' + (r.deadline||'') + '" onchange="updateField(' + r.id + ',\'deadline\',this.value)"></td>' +
     '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)') + '</td>' +
     '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)">' + editBtn + '</td>' +
-    '<td><input type="text" placeholder="Бележка към шофьора..." value="' + (r.officeNote||'') + '" onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed"></td>' +
+    '<td><textarea rows="2" placeholder="Бележка към шофьора..." onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed;width:100%;border:none;background:transparent;font-size:12px;padding:3px 5px;font-family:inherit;outline:none;resize:vertical">' + (r.officeNote||'') + '</textarea></td>' +
     '<td style="text-align:center">' + supplierHtml + '</td>' +
     '<td style="text-align:center">' + badge + '</td>' +
     '<td class="sp-btn-cell">' + spCell + '</td>' +
