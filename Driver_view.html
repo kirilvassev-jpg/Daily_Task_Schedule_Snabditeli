@@ -198,6 +198,7 @@ var countdownTimer = null, secondsLeft = 30;
 var notifGranted = false, firstLoad = true;
 var audioCtx = null, audioUnlocked = false;
 var lockedIds = {};
+var noteCache = {}; // Запомня officeNote по spId за цялата сесия
 
 document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
 
@@ -362,6 +363,12 @@ function loadTasks(retryCount) {
         if (lockedIds[r.spId]) {
           r.status   = lockedIds[r.spId].status;
           r.supplier = lockedIds[r.spId].supplier;
+        }
+        // Кешира бележката; ако SharePoint я е изтрил — я възстановява
+        if (r.officeNote) {
+          noteCache[r.spId] = r.officeNote;
+        } else if (noteCache[r.spId]) {
+          r.officeNote = noteCache[r.spId];
         }
         newRows.push(r);
       }
@@ -534,6 +541,7 @@ function confirmDone() {
   for (var i = 0; i < rows.length; i++) { if (rows[i].spId == pendingDoneId) { r = rows[i]; break; } }
   if (!r) { closeDoneModal(); return; }
   r.status = 'Изпълнена'; r.deliveredOn = deliveredOn; r.note = note;
+  delete noteCache[r.spId]; // Изчиства кеша при приключена задача
   closeDoneModal();
   showToast('⏳ Записване...');
   fetch(UPDATE_FLOW_URL, {
