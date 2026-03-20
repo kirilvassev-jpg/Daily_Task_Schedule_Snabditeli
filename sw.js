@@ -1,4 +1,4 @@
-var CACHE_NAME = 'zadachi-v1';
+var CACHE_NAME = 'zadachi-v2';
 var CACHE_URLS = [
   '/Daily_Task_Schedule_Snabditeli/Driver_view.html'
 ];
