@@ -42,7 +42,9 @@ self.addEventListener('push', function(e) {
       icon: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
       badge: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
       tag: 'new-task',
-      renotify: true
+      renotify: true,
+      vibrate: [300, 100, 300, 100, 300],
+      requireInteraction: true
     })
   );
 });

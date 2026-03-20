@@ -287,8 +287,25 @@ function updateNotifBtn() {
 function sendPush(title, body) {
   if (!notifGranted || Notification.permission !== 'granted') return;
   try {
-    var n = new Notification(title, { body: body, tag: 'new-task', renotify: true });
-    n.onclick = function() { window.focus(); n.close(); };
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(function(reg) {
+        reg.showNotification(title, {
+          body: body,
+          tag: 'new-task',
+          renotify: true,
+          vibrate: [300, 100, 300, 100, 300],
+          icon: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
+          badge: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
+          requireInteraction: true
+        });
+      }).catch(function() {
+        var n = new Notification(title, { body: body, tag: 'new-task', renotify: true });
+        n.onclick = function() { window.focus(); n.close(); };
+      });
+    } else {
+      var n = new Notification(title, { body: body, tag: 'new-task', renotify: true });
+      n.onclick = function() { window.focus(); n.close(); };
+    }
   } catch(e) {}
 }
 function testAll() {
