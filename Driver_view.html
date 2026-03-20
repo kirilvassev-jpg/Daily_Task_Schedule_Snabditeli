@@ -62,14 +62,14 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 .toast { position: fixed; bottom: 24px; right: 16px; background: #1e40af; color: white; padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 280px; }
 .toast.show { display: block; }
 .toast.error { background: #dc2626; }
-.new-task-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 14px 16px; z-index: 300; text-align: center; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.new-task-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 14px 16px; z-index: 300; text-align: center; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; user-select: none; }
 .new-task-banner.show { display: block; animation: slideDown .4s ease; }
 @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 </style>
 </head>
 <body>
 
-<div class="new-task-banner" id="newTaskBanner">📦 Нова задача!</div>
+<div class="new-task-banner" id="newTaskBanner" onclick="dismissBanner()">📦 Нова задача! <span style="font-size:12px;opacity:.8;display:block;margin-top:4px;">Натисни за затваряне</span></div>
 
 <div class="header">
   <h1>📦 Задачи за днес</h1>
@@ -199,6 +199,7 @@ var notifGranted = false, firstLoad = true;
 var audioCtx = null, audioUnlocked = false;
 var lockedIds = {};
 var noteCache = {}; // Запомня officeNote по spId за цялата сесия
+var newTaskAccumulator = 0; // Натрупва броя нови задачи докато не се затвори банерът
 
 document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
 
@@ -221,13 +222,17 @@ function showToast(msg, isError) {
   t.className = 'toast show' + (isError ? ' error' : '');
   setTimeout(function() { t.className = 'toast'; }, 3500);
 }
-function showBanner(msg) {
+function showBanner(count) {
   var b = document.getElementById('newTaskBanner');
-  b.textContent = msg;
+  var label = count === 1 ? 'нова задача' : 'нови задачи';
+  b.innerHTML = '📦 ' + count + ' ' + label + '! <span style="font-size:12px;opacity:.8;display:block;margin-top:4px;">Натисни за затваряне</span>';
   b.classList.remove('show');
   void b.offsetWidth;
   b.classList.add('show');
-  setTimeout(function() { b.classList.remove('show'); }, 5000);
+}
+function dismissBanner() {
+  newTaskAccumulator = 0;
+  document.getElementById('newTaskBanner').classList.remove('show');
 }
 
 // ── Аудио ──
@@ -309,7 +314,8 @@ function sendPush(title, body) {
   } catch(e) {}
 }
 function testAll() {
-  showBanner('📦 1 нова задача! (ТЕСТ)');
+  newTaskAccumulator += 1;
+  showBanner(newTaskAccumulator);
   playBeep(); vibrate();
   if (notifGranted) sendPush('📦 Тест', 'Работи!');
   showToast(notifGranted ? '✅ Тестът работи!' : '⚠️ Натисни "Включи известия" първо!', !notifGranted);
@@ -333,8 +339,9 @@ function notifyNewTasks(newRows) {
     return r.status === 'За изпълнение';
   });
   if (newTasks.length > 0) {
+    newTaskAccumulator += newTasks.length;
     playBeep(); vibrate();
-    showBanner('📦 ' + newTasks.length + ' нова задача!');
+    showBanner(newTaskAccumulator);
     newTasks.forEach(function(r) { sendPush('📦 Нова задача!', (r.firma||'') + ' → ' + (r.place||'')); });
   }
 }
