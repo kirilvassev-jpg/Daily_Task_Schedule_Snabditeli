@@ -194,7 +194,7 @@ var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environm
 
 var rows = [];
 var pendingTakeId = null, pendingDoneId = null;
-var countdownTimer = null, secondsLeft = 30;
+var countdownTimer = null, secondsLeft = 15;
 var notifGranted = false, firstLoad = true;
 var audioCtx = null, audioUnlocked = false;
 var lockedIds = {};
@@ -350,12 +350,12 @@ function notifyNewTasks(newRows) {
 // ── Auto refresh ──
 function startAutoRefresh() {
   if (countdownTimer) clearInterval(countdownTimer);
-  secondsLeft = 30;
+  secondsLeft = 15;
   countdownTimer = setInterval(function() {
     secondsLeft--;
     var el = document.getElementById('nextRefresh');
     if (el) el.textContent = secondsLeft;
-    if (secondsLeft <= 0) { secondsLeft = 30; loadTasks(0); }
+    if (secondsLeft <= 0) { secondsLeft = 15; loadTasks(0); }
   }, 1000);
 }
 
@@ -625,9 +625,38 @@ if (typeof Notification !== 'undefined' && Notification.permission === 'granted'
   notifGranted = true;
   setTimeout(updateNotifBtn, 100);
 }
+
+// При отваряне на ъппа — веднага презарежда
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    loadTasks(0);
+  }
+});
+
+// SW изпраща съобщение за нова задача (от фон спрямо към отворената страница)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'NEW_TASK') {
+      newTaskAccumulator += event.data.count || 1;
+      playBeep(); vibrate();
+      showBanner(newTaskAccumulator);
+      loadTasks(0);
+    }
+  });
+}
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(function(reg) {
     console.log('SW регистриран:', reg.scope);
+    // Регистрираме Periodic Background Sync (работи дори без отворен апп)
+    if ('periodicSync' in reg) {
+      navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
+        if (status.state === 'granted') {
+          reg.periodicSync.register('check-new-tasks', { minInterval: 60 * 1000 })
+            .catch(function() {});
+        }
+      }).catch(function() {});
+    }
   }).catch(function(err) {
     console.log('SW грешка:', err);
   });
