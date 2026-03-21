@@ -83,7 +83,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
   <button class="btn-add" onclick="openAddModal()">＋ Добави задача</button>
   <button class="btn-notif" id="notifBtn" onclick="enableNotifications()">🔔 Включи известия</button>
   <button class="btn-test" onclick="testAll()">🧪 Тест</button>
-  <span class="auto-badge">Авто: <span id="nextRefresh">30</span>с</span>
+  <span class="auto-badge">Авто: <span id="nextRefresh">15</span>с</span>
 </div>
 
 <div class="cards-wrap" id="cardsContainer">
@@ -117,7 +117,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
     </div>
     <div class="input-group">
       <label>🏢 Доставчик</label>
-      <input type="text" id="addFirmaInput" placeholder="Име на доставчика">
+      <input type="text" id="addFirmaInput" placeholder="Ime на доставчика">
     </div>
     <div class="input-group">
       <label>📍 Място на доставка</label>
@@ -190,7 +190,6 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 <div class="toast" id="toast"></div>
 
 <script>
-// ── Firebase + FCM ──
 var FIREBASE_CONFIG = {
   apiKey:            "AIzaSyDkNIY_FERepP_Hluz4hm9nb9yQMr__1tQ",
   authDomain:        "snabditeli-daily-tasks.firebaseapp.com",
@@ -213,8 +212,8 @@ var countdownTimer = null, secondsLeft = 15;
 var notifGranted = false, firstLoad = true;
 var audioCtx = null, audioUnlocked = false;
 var lockedIds = {};
-var noteCache = {}; // Запомня officeNote по spId за цялата сесия
-var newTaskAccumulator = 0; // Натрупва броя нови задачи докато не се затвори банерът
+var noteCache = {};
+var newTaskAccumulator = 0;
 
 document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bg-BG');
 
@@ -283,7 +282,6 @@ function vibrate() {
   try { if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]); } catch(e) {}
 }
 
-// ── Push известия ──
 // ── FCM регистрация ──
 function registerFCM() {
   if (!('serviceWorker' in navigator)) return;
@@ -299,7 +297,6 @@ function registerFCM() {
       saveFCMToken(token);
       var messaging = firebase.messaging();
       messaging.onMessage(function(payload) {
-        // Форгрунден push (аппът е отворен)
         newTaskAccumulator += 1;
         playBeep(); vibrate();
         showBanner(newTaskAccumulator);
@@ -329,9 +326,9 @@ function saveFCMToken(token) {
       }
     })
   }).then(function(r) {
-    if (r.ok) console.log('FCM token saved to Firestore');
-    else r.text().then(function(t) { console.error('Firestore save error:', t); });
-  }).catch(function(err) { console.error('Firestore save failed:', err); });
+    if (r.ok) console.log('FCM token saved');
+    else r.text().then(function(t) { console.error('Firestore error:', t); });
+  }).catch(function(err) { console.error('Firestore failed:', err); });
 }
 
 function enableNotifications() {
@@ -361,21 +358,13 @@ function sendPush(title, body) {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(function(reg) {
         reg.showNotification(title, {
-          body: body,
-          tag: 'new-task',
-          renotify: true,
+          body: body, tag: 'new-task', renotify: true,
           vibrate: [300, 100, 300, 100, 300],
           icon: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
           badge: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
           requireInteraction: true
         });
-      }).catch(function() {
-        var n = new Notification(title, { body: body, tag: 'new-task', renotify: true });
-        n.onclick = function() { window.focus(); n.close(); };
       });
-    } else {
-      var n = new Notification(title, { body: body, tag: 'new-task', renotify: true });
-      n.onclick = function() { window.focus(); n.close(); };
     }
   } catch(e) {}
 }
@@ -400,7 +389,6 @@ function notifyNewTasks(newRows) {
   var freeCount = newRows.filter(function(r) { return r.status === 'За изпълнение'; }).length;
   updateBadge(freeCount);
   if (firstLoad) return;
-  // Открива ВСЯКА нова задача (и 'За изпълнение', и 'В процес') — проверява само по spId
   var newTasks = newRows.filter(function(r) {
     for (var i = 0; i < rows.length; i++) { if (rows[i].spId == r.spId) return false; }
     return true;
@@ -455,7 +443,6 @@ function loadTasks(retryCount) {
           r.status   = lockedIds[r.spId].status;
           r.supplier = lockedIds[r.spId].supplier;
         }
-        // Кешира бележката; ако SharePoint я е изтрил — я възстановява
         if (r.officeNote) {
           noteCache[r.spId] = r.officeNote;
         } else if (noteCache[r.spId]) {
@@ -469,7 +456,7 @@ function loadTasks(retryCount) {
       renderCards();
       updateStats();
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
-      startAutoRefresh(); // нулира таймера след всяко успешно зареждане
+      startAutoRefresh();
     })
     .catch(function() {
       if (retryCount < 3) {
@@ -492,7 +479,7 @@ function renderCards() {
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
     var card = document.createElement('div');
-    var isDriverAdded = !r.specialist; // задачи без специалист са добавени от шофьор
+    var isDriverAdded = !r.specialist;
     card.className = 'card' + (r.status === 'В процес на изпълнение' ? ' taken' : '') + (isDriverAdded ? ' driver-added' : '');
     var actionsHtml = '';
     if (r.status === 'За изпълнение') {
@@ -520,7 +507,7 @@ function renderCards() {
   }
 }
 
-// ── Добави задача (от шофьор) ──
+// ── Добави задача ──
 function openAddModal() {
   document.getElementById('addDriverSelect').value = '';
   document.getElementById('addFirmaInput').value = '';
@@ -528,9 +515,7 @@ function openAddModal() {
   document.getElementById('addDirectionSelect').value = '';
   document.getElementById('addModalOverlay').classList.add('open');
 }
-function closeAddModal() {
-  document.getElementById('addModalOverlay').classList.remove('open');
-}
+function closeAddModal() { document.getElementById('addModalOverlay').classList.remove('open'); }
 function confirmAdd() {
   var driver    = document.getElementById('addDriverSelect').value;
   var firma     = document.getElementById('addFirmaInput').value.trim();
@@ -538,37 +523,23 @@ function confirmAdd() {
   var direction = document.getElementById('addDirectionSelect').value;
   if (!driver)    { showToast('❌ Изберете вашето ime!', true); return; }
   if (!firma)     { showToast('❌ Въведете доставчик!', true); return; }
-  if (!place)     { showToast('❌ Въведете място на доставка!', true); return; }
+  if (!place)     { showToast('❌ Въведете място!', true); return; }
   if (!direction) { showToast('❌ Изберете направление!', true); return; }
   closeAddModal();
   showToast('⏳ Записване...');
-  var payload = {
-    date:       todayStr(),
-    specialist: '',
-    direction:  direction,
-    deadline:   todayStr(),
-    supplier:   firma,
-    place:      place,
-    driver:     driver,
-    officeNote: '',
-    status:     'В процес на изпълнение'
-  };
-  fetch(SAVE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
-    .then(function(res) {
-      if (res.ok) {
-        showToast('✅ Задачата е добавена!');
-        // Показваме банера веднага — без да чакаме следващия loadTasks
-        newTaskAccumulator += 1;
-        playBeep(); vibrate();
-        showBanner(newTaskAccumulator);
-        sendPush('📦 Нова задача!', firma + ' → ' + place);
-        // Презареждаме с по-голям delay, за да е сигурно, че SharePoint е записал
-        setTimeout(function() { loadTasks(0); }, 5000);
-      } else {
-        showToast('❌ Грешка: ' + res.status, true);
-      }
-    })
-    .catch(function() { showToast('❌ Грешка при записване!', true); });
+  fetch(SAVE_FLOW_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ date:todayStr(), specialist:'', direction:direction, deadline:todayStr(), supplier:firma, place:place, driver:driver, officeNote:'', status:'В процес на изпълнение' })
+  })
+  .then(function(res) {
+    if (res.ok) {
+      showToast('✅ Задачата е добавена!');
+      newTaskAccumulator += 1; playBeep(); vibrate(); showBanner(newTaskAccumulator);
+      sendPush('📦 Нова задача!', firma + ' → ' + place);
+      setTimeout(function() { loadTasks(0); }, 5000);
+    } else { showToast('❌ Грешка: ' + res.status, true); }
+  })
+  .catch(function() { showToast('❌ Грешка!', true); });
 }
 
 // ── Take modal ──
@@ -601,21 +572,15 @@ function confirmTake() {
       showToast('✅ Задачата е поета!');
       setTimeout(function() { delete lockedIds[spId]; }, 30000);
     } else if (res.status === 502 || res.status === 503 || res.status === 504) {
-      showToast('⏳ Сървърът се събужда, опитвам пак...');
+      showToast('⏳ Опитвам пак...');
       setTimeout(function() {
-        fetch(UPDATE_FLOW_URL, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'' })
-        })
+        fetch(UPDATE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'' }) })
         .then(function(res2) {
           if (res2.ok) { showToast('✅ Задачата е поета!'); setTimeout(function() { delete lockedIds[spId]; }, 30000); }
           else { showToast('❌ Грешка: ' + res2.status, true); delete lockedIds[spId]; }
-        })
-        .catch(function() { delete lockedIds[spId]; showToast('❌ Грешка!', true); });
+        }).catch(function() { delete lockedIds[spId]; showToast('❌ Грешка!', true); });
       }, 5000);
-    } else {
-      showToast('❌ Грешка: ' + res.status, true); delete lockedIds[spId];
-    }
+    } else { showToast('❌ Грешка: ' + res.status, true); delete lockedIds[spId]; }
   })
   .catch(function() { delete lockedIds[spId]; showToast('❌ Мрежова грешка!', true); });
 }
@@ -639,7 +604,7 @@ function confirmDone() {
   for (var i = 0; i < rows.length; i++) { if (rows[i].spId == pendingDoneId) { r = rows[i]; break; } }
   if (!r) { closeDoneModal(); return; }
   r.status = 'Изпълнена'; r.deliveredOn = deliveredOn; r.note = note;
-  delete noteCache[r.spId]; // Изчиства кеша при приключена задача
+  delete noteCache[r.spId];
   closeDoneModal();
   showToast('⏳ Записване...');
   fetch(UPDATE_FLOW_URL, {
@@ -652,20 +617,13 @@ function confirmDone() {
       renderCards(); updateStats();
       showToast('✅ Изпълнена и архивирана!');
     } else if (res.status === 502 || res.status === 503 || res.status === 504) {
-      showToast('⏳ Сървърът се събужда, опитвам пак...');
+      showToast('⏳ Опитвам пак...');
       setTimeout(function() {
-        fetch(UPDATE_FLOW_URL, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ id:r.spId, status:'Изпълнена', driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note })
-        })
+        fetch(UPDATE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:r.spId, status:'Изпълнена', driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note }) })
         .then(function(res2) {
-          if (res2.ok) {
-            rows = rows.filter(function(x) { return x.spId !== r.spId; });
-            renderCards(); updateStats();
-            showToast('✅ Изпълнена и архивирана!');
-          } else { showToast('❌ Грешка: ' + res2.status, true); }
-        })
-        .catch(function() { showToast('❌ Грешка!', true); });
+          if (res2.ok) { rows = rows.filter(function(x) { return x.spId !== r.spId; }); renderCards(); updateStats(); showToast('✅ Изпълнена и архивирана!'); }
+          else { showToast('❌ Грешка: ' + res2.status, true); }
+        }).catch(function() { showToast('❌ Грешка!', true); });
       }, 5000);
     } else { showToast('❌ Грешка: ' + res.status, true); }
   })
@@ -690,17 +648,13 @@ function updateStats() {
 if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
   notifGranted = true;
   setTimeout(updateNotifBtn, 100);
-  setTimeout(registerFCM, 1000); // Авто FCM ако вече е дадено разрешение
+  setTimeout(registerFCM, 1000);
 }
 
-// При отваряне на ъппа — веднага презарежда
 document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible') {
-    loadTasks(0);
-  }
+  if (document.visibilityState === 'visible') loadTasks(0);
 });
 
-// SW изпраща съобщение за нова задача (от фон спрямо към отворената страница)
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', function(event) {
     if (event.data && event.data.type === 'NEW_TASK') {
@@ -710,22 +664,16 @@ if ('serviceWorker' in navigator) {
       loadTasks(0);
     }
   });
-}
-
-if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./firebase-messaging-sw.js').then(function(reg) {
     console.log('SW регистриран:', reg.scope);
     if ('periodicSync' in reg) {
       navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
         if (status.state === 'granted') {
-          reg.periodicSync.register('check-new-tasks', { minInterval: 60 * 1000 })
-            .catch(function() {});
+          reg.periodicSync.register('check-new-tasks', { minInterval: 60 * 1000 }).catch(function() {});
         }
       }).catch(function() {});
     }
-  }).catch(function(err) {
-    console.log('SW грешка:', err);
-  });
+  }).catch(function(err) { console.log('SW грешка:', err); });
 }
 loadTasks(0);
 startAutoRefresh();
