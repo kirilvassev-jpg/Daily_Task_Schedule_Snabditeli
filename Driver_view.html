@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Задачи">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
@@ -188,6 +190,19 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 <div class="toast" id="toast"></div>
 
 <script>
+// ── Firebase + FCM ──
+var FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDkNIY_FERepP_Hluz4hm9nb9yQMr__1tQ",
+  authDomain:        "snabditeli-daily-tasks.firebaseapp.com",
+  projectId:         "snabditeli-daily-tasks",
+  storageBucket:     "snabditeli-daily-tasks.firebasestorage.app",
+  messagingSenderId: "331067265730",
+  appId:             "1:331067265730:web:fcfa5765e4c4bbd90e615b"
+};
+var VAPID_KEY = 'BNozbSmSA31rby9xzDqZvr1Jbf8D6J_jnIMRrJ3g2Fp3-6GenMqgdAvHcp4GKJ_UjSqR3sf080nXqLu0MdhCf5A';
+var FIRESTORE_TOKENS_URL = 'https://firestore.googleapis.com/v1/projects/snabditeli-daily-tasks/databases/(default)/documents/fcm_tokens/';
+firebase.initializeApp(FIREBASE_CONFIG);
+
 var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
@@ -269,16 +284,63 @@ function vibrate() {
 }
 
 // ── Push известия ──
+// ── FCM регистрация ──
+function registerFCM() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistration('./firebase-messaging-sw.js').then(function(existingReg) {
+    var regPromise = existingReg
+      ? Promise.resolve(existingReg)
+      : navigator.serviceWorker.register('./firebase-messaging-sw.js');
+    regPromise.then(function(swReg) {
+      var messaging = firebase.messaging();
+      return messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+    }).then(function(token) {
+      if (!token) return;
+      saveFCMToken(token);
+      var messaging = firebase.messaging();
+      messaging.onMessage(function(payload) {
+        // Форгрунден push (аппът е отворен)
+        newTaskAccumulator += 1;
+        playBeep(); vibrate();
+        showBanner(newTaskAccumulator);
+        var t = payload.notification ? (payload.notification.title + ': ' + payload.notification.body) : '📦 Нова задача!';
+        showToast(t);
+        loadTasks(0);
+      });
+    }).catch(function(err) {
+      console.log('FCM error:', err);
+    });
+  });
+}
+function saveFCMToken(token) {
+  var deviceId = localStorage.getItem('fcmDeviceId');
+  if (!deviceId) {
+    deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('fcmDeviceId', deviceId);
+  }
+  fetch(FIRESTORE_TOKENS_URL + deviceId, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fields: {
+        token:     { stringValue: token },
+        updatedAt: { stringValue: new Date().toISOString() }
+      }
+    })
+  }).catch(function() {});
+}
+
 function enableNotifications() {
   unlockAudio();
   if (!('Notification' in window)) { showToast('⚠️ Браузърът не поддържа известия!', true); return; }
   if (Notification.permission === 'granted') {
     notifGranted = true; updateNotifBtn();
+    registerFCM();
     showToast('✅ Известията са включени!'); playBeep(); vibrate();
   } else {
     Notification.requestPermission().then(function(p) {
       notifGranted = p === 'granted'; updateNotifBtn();
-      if (notifGranted) { showToast('✅ Включено!'); playBeep(); vibrate(); }
+      if (notifGranted) { registerFCM(); showToast('✅ Включено!'); playBeep(); vibrate(); }
       else showToast('⚠️ Отказано!', true);
     });
   }
@@ -624,6 +686,7 @@ function updateStats() {
 if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
   notifGranted = true;
   setTimeout(updateNotifBtn, 100);
+  setTimeout(registerFCM, 1000); // Авто FCM ако вече е дадено разрешение
 }
 
 // При отваряне на ъппа — веднага презарежда
@@ -646,9 +709,8 @@ if ('serviceWorker' in navigator) {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').then(function(reg) {
+  navigator.serviceWorker.register('./firebase-messaging-sw.js').then(function(reg) {
     console.log('SW регистриран:', reg.scope);
-    // Регистрираме Periodic Background Sync (работи дори без отворен апп)
     if ('periodicSync' in reg) {
       navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
         if (status.state === 'granted') {
