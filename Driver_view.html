@@ -334,9 +334,10 @@ function notifyNewTasks(newRows) {
   var freeCount = newRows.filter(function(r) { return r.status === 'За изпълнение'; }).length;
   updateBadge(freeCount);
   if (firstLoad) return;
+  // Открива ВСЯКА нова задача (и 'За изпълнение', и 'В процес') — проверява само по spId
   var newTasks = newRows.filter(function(r) {
     for (var i = 0; i < rows.length; i++) { if (rows[i].spId == r.spId) return false; }
-    return r.status === 'За изпълнение';
+    return true;
   });
   if (newTasks.length > 0) {
     newTaskAccumulator += newTasks.length;
@@ -402,6 +403,7 @@ function loadTasks(retryCount) {
       renderCards();
       updateStats();
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
+      startAutoRefresh(); // нулира таймера след всяко успешно зареждане
     })
     .catch(function() {
       if (retryCount < 3) {
