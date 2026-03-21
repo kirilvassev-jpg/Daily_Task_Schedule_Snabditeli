@@ -318,7 +318,8 @@ function saveFCMToken(token) {
     deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem('fcmDeviceId', deviceId);
   }
-  fetch(FIRESTORE_TOKENS_URL + deviceId, {
+  var url = FIRESTORE_TOKENS_URL + deviceId + '?updateMask.fieldPaths=token&updateMask.fieldPaths=updatedAt';
+  fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -327,7 +328,10 @@ function saveFCMToken(token) {
         updatedAt: { stringValue: new Date().toISOString() }
       }
     })
-  }).catch(function() {});
+  }).then(function(r) {
+    if (r.ok) console.log('FCM token saved to Firestore');
+    else r.text().then(function(t) { console.error('Firestore save error:', t); });
+  }).catch(function(err) { console.error('Firestore save failed:', err); });
 }
 
 function enableNotifications() {
