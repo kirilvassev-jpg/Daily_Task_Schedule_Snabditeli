@@ -491,7 +491,13 @@ function confirmAdd() {
     .then(function(res) {
       if (res.ok) {
         showToast('✅ Задачата е добавена!');
-        setTimeout(function() { loadTasks(0); }, 2000);
+        // Показваме банера веднага — без да чакаме следващия loadTasks
+        newTaskAccumulator += 1;
+        playBeep(); vibrate();
+        showBanner(newTaskAccumulator);
+        sendPush('📦 Нова задача!', firma + ' → ' + place);
+        // Презареждаме с по-голям delay, за да е сигурно, че SharePoint е записал
+        setTimeout(function() { loadTasks(0); }, 5000);
       } else {
         showToast('❌ Грешка: ' + res.status, true);
       }
