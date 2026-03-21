@@ -664,8 +664,19 @@ if ('serviceWorker' in navigator) {
       loadTasks(0);
     }
   });
+  // Изчисти стария sw.js ако е регистриран
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(reg) {
+      var url = (reg.active && reg.active.scriptURL) || (reg.installing && reg.installing.scriptURL) || '';
+      if (url.indexOf('sw.js') !== -1 && url.indexOf('firebase') === -1) {
+        reg.unregister().then(function() { console.log('Стар SW изчистен:', url); });
+      }
+    });
+  });
+
   navigator.serviceWorker.register('./firebase-messaging-sw.js').then(function(reg) {
     console.log('SW регистриран:', reg.scope);
+    reg.update();
     if ('periodicSync' in reg) {
       navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
         if (status.state === 'granted') {
