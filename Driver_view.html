@@ -562,6 +562,7 @@ function confirmTake() {
   r.supplier = driver; r.status = 'В процес на изпълнение';
   lockedIds[spId] = { status: r.status, supplier: r.supplier };
   closeTakeModal(); renderCards(); updateStats();
+  dismissBanner();
   showToast('⏳ Записване...');
   fetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -606,6 +607,7 @@ function confirmDone() {
   r.status = 'Изпълнена'; r.deliveredOn = deliveredOn; r.note = note;
   delete noteCache[r.spId];
   closeDoneModal();
+  dismissBanner();
   showToast('⏳ Записване...');
   fetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
