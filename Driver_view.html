@@ -569,7 +569,7 @@ function confirmTake() {
   showToast('⏳ Записване...');
   fetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'' })
+    body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'', officeNote:r.officeNote||'' })
   })
   .then(function(res) {
     if (res.ok) {
@@ -578,7 +578,7 @@ function confirmTake() {
     } else if (res.status === 502 || res.status === 503 || res.status === 504) {
       showToast('⏳ Опитвам пак...');
       setTimeout(function() {
-        fetch(UPDATE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'' }) })
+        fetch(UPDATE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'', officeNote:r.officeNote||'' }) })
         .then(function(res2) {
           if (res2.ok) { showToast('✅ Задачата е поета!'); setTimeout(function() { delete lockedIds[spId]; }, 30000); }
           else { showToast('❌ Грешка: ' + res2.status, true); delete lockedIds[spId]; }
