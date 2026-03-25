@@ -571,8 +571,12 @@ function saveRowToSharePoint(id, callback) {
     supplier: r.firma, place: r.place, driver: '', officeNote: r.officeNote||'', status: r.status
   };
   fetch(SAVE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
-    .then(function(res) { return res.json().catch(function() { return {}; }); })
+    .then(function(res) {
+      if (!res.ok) { r.isSaving = false; rebuildTable(); showToast('❌ Грешка при записване: ' + res.status, true); return Promise.reject('http'); }
+      return res.json().catch(function() { return {}; });
+    })
     .then(function(data) {
+      if (!data) return;
       r.spId = data.id || data.ID || data.ItemId || data.itemId || null;
       r.savedToSP = true; r.isSaving = false;
       rebuildTable(); showToast('✅ Записано в SharePoint!');
@@ -580,7 +584,7 @@ function saveRowToSharePoint(id, callback) {
       var fn = r._pendingFn; r._pendingFn = null;
       if (fn) fn(); else if (callback) callback();
     })
-    .catch(function() { r.isSaving = false; rebuildTable(); showToast('❌ Грешка при записване!', true); });
+    .catch(function(e) { if (e !== 'http') { r.isSaving = false; rebuildTable(); showToast('❌ Грешка при записване!', true); } });
 }
 
 function updateInSharePoint(r, callback) {

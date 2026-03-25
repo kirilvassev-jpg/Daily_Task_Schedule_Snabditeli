@@ -466,7 +466,9 @@ function loadTasks(retryCount) {
         var delay = [3000, 6000, 10000][retryCount] || 10000;
         setTimeout(function() { loadTasks(retryCount + 1); }, delay);
       } else {
+        document.getElementById('cardsContainer').innerHTML = '<div class="empty-msg">⚠️ Неуспешно зареждане. Провери интернет и натисни 🔄 Обнови.</div>';
         showToast('⚠️ Грешка при зареждане!', true);
+        startAutoRefresh();
       }
     });
 }
