@@ -9,7 +9,7 @@ var GET_FLOW_URL = 'https://default0b822811c53c4f5e9444350c2fb3f9.35.environment
 var KNOWN_IDS_CACHE = 'known-task-ids-v2';
 
 firebase.initializeApp({
-  apiKey: "AIzaSyDkNIY_FERepP_Hluz4hm9nb9yQMr__1tQ",
+  apiKey: "AIzaSyAdpYQcfxgTWVHJzjOS4DHgNV9B0QcOySo",
   authDomain: "snabditeli-daily-tasks.firebaseapp.com",
   projectId: "snabditeli-daily-tasks",
   storageBucket: "snabditeli-daily-tasks.firebasestorage.app",
