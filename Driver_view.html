@@ -534,7 +534,7 @@ function confirmAdd() {
   showToast('⏳ Записване...');
   fetch(SAVE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ date:todayStr(), specialist:'', direction:direction, deadline:todayStr(), supplier:firma, place:place, driver:driver, officeNote:'', status:'В процес на изпълнение' })
+    body: JSON.stringify({ date:todayStr(), specialist:'', direction:direction, deadline:todayStr(), supplier:firma, place:place, driver:driver, officeNote:'', status:'За изпълнение' })
   })
   .then(function(res) {
     if (res.ok) {
