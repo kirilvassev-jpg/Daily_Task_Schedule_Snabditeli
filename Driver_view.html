@@ -419,7 +419,19 @@ function startAutoRefresh() {
 // ── Load tasks ──
 function loadTasks(retryCount) {
   fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+      if (res.status === 502 || res.status === 503 || res.status === 504) {
+        if (retryCount < 4) {
+          var delay = [3000, 5000, 8000, 12000][retryCount] || 12000;
+          setTimeout(function() { loadTasks(retryCount + 1); }, delay);
+        } else {
+          showToast('⚠️ Грешка при зареждане (504)!', true);
+          startAutoRefresh();
+        }
+        return Promise.reject('http_' + res.status);
+      }
+      return res.json();
+    })
     .then(function(data) {
       var newRows = [];
       var items = data.value || [];
@@ -461,7 +473,8 @@ function loadTasks(retryCount) {
       document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
       startAutoRefresh();
     })
-    .catch(function() {
+    .catch(function(e) {
+      if (typeof e === 'string' && e.indexOf('http_') === 0) return;
       if (retryCount < 3) {
         var delay = [3000, 6000, 10000][retryCount] || 10000;
         setTimeout(function() { loadTasks(retryCount + 1); }, delay);
