@@ -123,6 +123,13 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 .stat .lbl { font-size: 10px; color: #9ca3af; }
 .auto-refresh-badge { font-size: 10px; color: #7c3aed; font-weight: 600; padding: 3px 8px; background: #ede9fe; border-radius: 20px; }
 .last-saved { font-size: 11px; color: #9ca3af; }
+tbody tr.status-overdue     { background: #fff7ed !important; }
+tbody tr.status-overdue-red { background: #fef2f2 !important; }
+.overdue-timer { font-size: 10px; font-weight: 700; display: block; margin-top: 3px; white-space: nowrap; }
+.overdue-timer.orange { color: #d97706; }
+.overdue-timer.red    { color: #dc2626; }
+.overdue-banner { display: none; padding: 8px 16px; background: #fff7ed; border-bottom: 2px solid #f97316; color: #c2410c; font-size: 12px; font-weight: 700; align-items: center; gap: 8px; }
+.overdue-banner.show { display: flex; }
 </style>
 </head>
 <body>
@@ -196,6 +203,8 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
     </div>
   </div>
 </div>
+
+<div class="overdue-banner" id="officeOverdueBanner">⚠️ Има непоета задача над 30 мин!</div>
 
 <div class="driver-status-panel" id="driverStatusPanel">
   <div class="driver-status-title">👥 Статус на снабдителите</div>
@@ -411,6 +420,7 @@ function startAutoRefresh() {
     secondsLeft--;
     var el = document.getElementById('nextRefresh');
     if (el) el.textContent = secondsLeft;
+    if (secondsLeft % 30 === 0) refreshOverdueMarkers();
     if (secondsLeft <= 0) { secondsLeft = 60; silentRefresh(); }
   }, 1000);
 }
@@ -442,7 +452,8 @@ function silentRefresh() {
             status:      newStatus,
             deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
             note:        item['OData__x0411__x0435__x043b__x04'] || '',
-            savedToSP:   true
+            savedToSP:   true,
+            createdAt:   item.Created || null
           });
           notifications.push('🚚 Нова задача от шофьор!<br><small>' + (item['OData__x0414__x043e__x0441__x0442__x04']||'') + ' → ' + (item['OData__x041c__x044f__x0441__x0442__x04']||'') + '</small>');
           changed = true;
@@ -507,6 +518,7 @@ function addRow(data) {
   if (r.deliveredOn===undefined) r.deliveredOn = '';
   if (r.note===undefined) r.note = '';
   if (r.officeNote===undefined) r.officeNote = '';
+  if (!r.createdAt) r.createdAt = new Date().toISOString();
   rows.push(r);
   renderTableRow(r);
   updateStats();
@@ -516,7 +528,8 @@ function renderTableRow(r) {
   var tbody = document.getElementById('tableBody');
   var tr = document.createElement('tr');
   tr.id = 'row-' + r.id;
-  tr.className = r.status==='Изпълнена' ? 'status-done' : r.status==='В процес на изпълнение' ? 'status-taken' : '';
+  var _ovLvl = overdueLevel(r.createdAt, r.status);
+  tr.className = r.status==='Изпълнена' ? 'status-done' : r.status==='В процес на изпълнение' ? 'status-taken' : (_ovLvl===2 ? 'status-overdue-red' : _ovLvl===1 ? 'status-overdue' : '');
   var badge = r.status==='Изпълнена'
     ? '<span class="status-badge badge-done">✅ Изпълнена</span>'
     : r.status==='В процес на изпълнение'
@@ -530,6 +543,7 @@ function renderTableRow(r) {
   var supplierHtml = r.supplier
     ? '<span class="supplier-cell taken">🚚 ' + r.supplier + '</span>'
     : '<span class="supplier-cell empty">— очаква се —</span>';
+  var timerHtml = (!r.supplier && r.createdAt) ? '<span class="overdue-timer' + (_ovLvl===2 ? ' red' : _ovLvl===1 ? ' orange' : '') + '" id="timer-' + r.id + '">⏱ ' + elapsedStr(r.createdAt) + '</span>' : '';
   var dlClass = deadlineClass(r.deadline);
   var dlIcon  = deadlineIcon(r.deadline);
   var editBtn = r.savedToSP ? '<button class="edit-btn" title="Коригирай адрес" onclick="openEditModal(' + r.id + ')">✏️</button>' : '';
@@ -541,7 +555,7 @@ function renderTableRow(r) {
     '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)') + '</td>' +
     '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)">' + editBtn + '</td>' +
     '<td><textarea rows="2" placeholder="Бележка към шофьора..." onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed;width:100%;border:none;background:transparent;font-size:12px;padding:3px 5px;font-family:inherit;outline:none;resize:vertical">' + (r.officeNote||'') + '</textarea></td>' +
-    '<td style="text-align:center">' + supplierHtml + '<br>' + badge + '</td>' +
+    '<td style="text-align:center">' + supplierHtml + timerHtml + '<br>' + badge + '</td>' +
     '<td><button class="del-btn" onclick="deleteRow(' + r.id + ')">✕</button></td>';
   tbody.appendChild(tr);
 }
@@ -634,7 +648,8 @@ function loadFromSharePoint() {
           status:      sv,
           deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
           note:        item['OData__x0411__x0435__x043b__x04'] || '',
-          savedToSP:   true
+          savedToSP:   true,
+          createdAt:   item.Created || null
         });
       });
       updateStats();
@@ -804,6 +819,39 @@ function loadData() {
     reader.readAsText(file);
   };
   inp.click();
+}
+function elapsedStr(isoStr) {
+  if (!isoStr) return '';
+  var ms = Date.now() - new Date(isoStr).getTime();
+  var mins = Math.floor(ms / 60000);
+  if (mins < 1) return '< 1 мин';
+  if (mins < 60) return mins + ' мин';
+  var h = Math.floor(mins / 60), m = mins % 60;
+  return h + 'ч' + (m > 0 ? ' ' + m + 'мин' : '');
+}
+function overdueLevel(isoStr, status) {
+  if (status !== 'За изпълнение' || !isoStr) return 0;
+  var ms = Date.now() - new Date(isoStr).getTime();
+  if (ms > 60 * 60 * 1000) return 2;
+  if (ms > 30 * 60 * 1000) return 1;
+  return 0;
+}
+function refreshOverdueMarkers() {
+  var hasOverdue = false;
+  rows.forEach(function(r) {
+    if (r.status !== 'За изпълнение' || r.supplier) return;
+    var lv = overdueLevel(r.createdAt, r.status);
+    if (lv > 0) hasOverdue = true;
+    var tr = document.getElementById('row-' + r.id);
+    if (tr) tr.className = lv===2 ? 'status-overdue-red' : lv===1 ? 'status-overdue' : '';
+    var span = document.getElementById('timer-' + r.id);
+    if (span) {
+      span.textContent = '⏱ ' + elapsedStr(r.createdAt);
+      span.className = 'overdue-timer' + (lv===2 ? ' red' : lv===1 ? ' orange' : '');
+    }
+  });
+  var banner = document.getElementById('officeOverdueBanner');
+  if (banner) banner.classList.toggle('show', hasOverdue);
 }
 function clearAll() {
   if (confirm('Сигурни ли сте?')) {
