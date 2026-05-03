@@ -74,6 +74,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
 <div class="new-task-banner" id="newTaskBanner" onclick="dismissBanner()">📦 Нова задача! <span style="font-size:12px;opacity:.8;display:block;margin-top:4px;">Натисни за затваряне</span></div>
 
 <div class="header">
+  <h1>📦 Задачи за днес</h1>
   <p id="headerDate"></p>
 </div>
 
@@ -81,7 +82,6 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
   <button class="btn-refresh" onclick="loadTasks(0)">🔄 Обнови</button>
   <button class="btn-add" onclick="openAddModal()">＋ Добави задача</button>
   <button class="btn-notif" id="notifBtn" onclick="enableNotifications()">🔔 Включи известия</button>
-  <button class="btn-test" onclick="testAll()">🧪 Тест</button>
   <span class="auto-badge">Авто: <span id="nextRefresh">15</span>с</span>
 </div>
 
@@ -93,8 +93,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100
   <div class="stats">
     <div class="stat"><div class="val" id="totalCount">0</div><div class="lbl">Общо</div></div>
     <div class="stat"><div class="val" id="takenCount">0</div><div class="lbl">В процес</div></div>
-    <div class="stat"><div class="val" id="doneCount">0</div><div class="lbl">Изпълнени</div></div>
-    <div class="stat"><div class="val" id="freeCount">0</div><div class="lbl">Свободни</div></div>
+    <div class="stat"><div class="val" id="freeCount">0</div><div class="lbl">За изпълнение</div></div>
   </div>
   <div class="last-saved" id="lastSaved">—</div>
 </div>
@@ -654,7 +653,6 @@ function updateStats() {
     else if (rows[i].status === 'За изпълнение') free++;
   }
   document.getElementById('totalCount').textContent = rows.length;
-  document.getElementById('doneCount').textContent  = 0;
   document.getElementById('takenCount').textContent = taken;
   document.getElementById('freeCount').textContent  = free;
   updateBadge(free);
