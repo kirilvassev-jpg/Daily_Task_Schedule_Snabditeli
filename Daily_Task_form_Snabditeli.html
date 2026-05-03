@@ -182,13 +182,19 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
 </div>
 
 <div class="toolbar" id="officeToolbar">
-  <button class="btn btn-primary" onclick="addRow()">＋ Добави задача</button>
-  <button class="btn btn-sp" onclick="saveAllToSharePoint()">☁️ Запази всички в SharePoint</button>
-  <button class="btn btn-success" onclick="saveData()">💾 Запази локално</button>
+  <button class="btn btn-primary" onclick="addRow()">+ Добави задача</button>
+  <button class="btn btn-sp" onclick="saveAllToSharePoint()">☁️ Запази в SharePoint</button>
   <button class="btn btn-refresh" onclick="loadFromSharePoint()">🔄 Обнови</button>
-  <button class="btn btn-outline" onclick="loadData()">📂 Зареди</button>
-  <button class="btn btn-outline" onclick="window.print()">🖨️ Печат</button>
-  <button class="btn btn-danger" onclick="clearAll()">🗑️ Изчисти</button>
+  <div style="position:relative;margin-left:auto">
+    <button class="btn btn-outline" onclick="toggleMoreMenu()">⚙️ Още ▾</button>
+    <div id="moreMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:white;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.12);min-width:160px;z-index:50">
+      <button onclick="saveData();toggleMoreMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;border:none;background:transparent;font-size:13px;cursor:pointer">💾 Запази локално</button>
+      <button onclick="loadData();toggleMoreMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;border:none;background:transparent;font-size:13px;cursor:pointer">📂 Зареди</button>
+      <button onclick="window.print();toggleMoreMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;border:none;background:transparent;font-size:13px;cursor:pointer">🖨️ Печат</button>
+      <hr style="margin:4px 0;border:none;border-top:1px solid #e5e7eb">
+      <button onclick="clearAll();toggleMoreMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;border:none;background:transparent;font-size:13px;color:#dc2626;cursor:pointer">🗑️ Изчисти</button>
+    </div>
+  </div>
 </div>
 
 <div class="driver-status-panel" id="driverStatusPanel">
@@ -208,9 +214,7 @@ td input:focus, td select:focus { background: #dbeafe; border-radius: 4px; }
           <th style="min-width:180px">Направление/дружество</th>
           <th style="min-width:140px">Място на доставка</th>
           <th style="min-width:160px">Бележка</th>
-          <th style="min-width:140px">Снабдител</th>
-          <th style="min-width:80px">Статус</th>
-          <th style="min-width:80px">SharePoint</th>
+          <th style="min-width:160px">Снабдител · Статус</th>
           <th></th>
         </tr>
       </thead>
@@ -537,9 +541,7 @@ function renderTableRow(r) {
     '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)') + '</td>' +
     '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)">' + editBtn + '</td>' +
     '<td><textarea rows="2" placeholder="Бележка към шофьора..." onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed;width:100%;border:none;background:transparent;font-size:12px;padding:3px 5px;font-family:inherit;outline:none;resize:vertical">' + (r.officeNote||'') + '</textarea></td>' +
-    '<td style="text-align:center">' + supplierHtml + '</td>' +
-    '<td style="text-align:center">' + badge + '</td>' +
-    '<td class="sp-btn-cell">' + spCell + '</td>' +
+    '<td style="text-align:center">' + supplierHtml + '<br>' + badge + '</td>' +
     '<td><button class="del-btn" onclick="deleteRow(' + r.id + ')">✕</button></td>';
   tbody.appendChild(tr);
 }
@@ -810,6 +812,18 @@ function clearAll() {
     updateStats();
   }
 }
+function toggleMoreMenu() {
+  var m = document.getElementById('moreMenu');
+  m.style.display = m.style.display === 'block' ? 'none' : 'block';
+}
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('moreMenu');
+  if (!menu) return;
+  var btn = document.querySelector('[onclick="toggleMoreMenu()"]');
+  if (btn && btn.contains(e.target)) return;
+  if (menu.contains(e.target)) return;
+  menu.style.display = 'none';
+});
 </script>
 </body>
 </html>
