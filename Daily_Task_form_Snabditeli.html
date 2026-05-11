@@ -522,6 +522,9 @@ function addRow(data) {
   rows.push(r);
   renderTableRow(r);
   updateStats();
+  if (!r.savedToSP && !r.spId) {
+    setTimeout(function() { saveRowToSharePoint(r.id); }, 300);
+  }
 }
 
 function renderTableRow(r) {
