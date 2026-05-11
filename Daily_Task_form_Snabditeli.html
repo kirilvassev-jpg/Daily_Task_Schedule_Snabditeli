@@ -522,9 +522,6 @@ function addRow(data) {
   rows.push(r);
   renderTableRow(r);
   updateStats();
-  if (!r.savedToSP && !r.spId) {
-    setTimeout(function() { saveRowToSharePoint(r.id); }, 300);
-  }
 }
 
 function renderTableRow(r) {
@@ -770,10 +767,17 @@ function confirmDone() {
   });
 }
 
+var autoSaveTimers = {};
 function updateField(id, field, val) {
   var r = rows.find(function(x) { return x.id===id; });
   if (r) { r[field] = val; r.savedToSP = false; }
   updateStats();
+  if (autoSaveTimers[id]) clearTimeout(autoSaveTimers[id]);
+  autoSaveTimers[id] = setTimeout(function() {
+    delete autoSaveTimers[id];
+    var row = rows.find(function(x) { return x.id===id; });
+    if (row && !row.savedToSP) saveRowToSharePoint(id);
+  }, 1500);
 }
 function deleteRow(id) {
   rows = rows.filter(function(x) { return x.id!==id; });
