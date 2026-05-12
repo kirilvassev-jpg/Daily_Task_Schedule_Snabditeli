@@ -588,7 +588,7 @@ function saveRowToSharePoint(id, callback) {
   r.isSaving = true; rebuildTable();
   var payload = {
     date: document.getElementById('mainDate').value,
-    specialist: r.specialist, direction: r.direction, deadline: r.deadline,
+    specialist: r.specialist, direction: r.direction, deadline: r.deadline || null,
     supplier: r.firma, place: r.place, driver: '', officeNote: r.officeNote||'', status: r.status
   };
   fetch(SAVE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
