@@ -421,15 +421,6 @@ function startAutoRefresh() {
     var el = document.getElementById('nextRefresh');
     if (el) el.textContent = secondsLeft;
     if (secondsLeft % 30 === 0) refreshOverdueMarkers();
-    // Автоматично запази несъхранени редове с данни на всеки 8 секунди
-    if (secondsLeft % 8 === 0) {
-      rows.forEach(function(r) {
-        if (!r.savedToSP && !r.isSaving && (r.firma || r.place || r.specialist)) {
-          collectRowData(r);
-          saveRowToSharePoint(r.id);
-        }
-      });
-    }
     if (secondsLeft <= 0) { secondsLeft = 60; silentRefresh(); }
   }, 1000);
 }
@@ -559,12 +550,13 @@ function renderTableRow(r) {
   tr.innerHTML =
     '<td class="num">' + (rows.indexOf(r)+1) + '</td>' +
     '<td>' + makeSelect(SPECIALISTS, r.specialist, 'updateField(' + r.id + ',\'specialist\',this.value)') + '</td>' +
-    '<td><input type="text" placeholder="Доставчик" value="' + (r.firma||'') + '" oninput="updateField(' + r.id + ',\'firma\',this.value)" onchange="updateField(' + r.id + ',\'firma\',this.value)"></td>' +
+    '<td><input type="text" placeholder="Доставчик" value="' + (r.firma||'') + '" onchange="updateField(' + r.id + ',\'firma\',this.value)"></td>' +
     '<td><span class="' + dlClass + '">' + dlIcon + '</span><input type="date" value="' + (r.deadline||'') + '" onchange="updateField(' + r.id + ',\'deadline\',this.value)"></td>' +
     '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)') + '</td>' +
-    '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" oninput="updateField(' + r.id + ',\'place\',this.value)" onchange="updateField(' + r.id + ',\'place\',this.value)">' + editBtn + '</td>' +
-    '<td><textarea rows="2" placeholder="Бележка към шофьора..." oninput="updateField(' + r.id + ',\'officeNote\',this.value)" onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed;width:100%;border:none;background:transparent;font-size:12px;padding:3px 5px;font-family:inherit;outline:none;resize:vertical">' + (r.officeNote||'') + '</textarea></td>' +
+    '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)">' + editBtn + '</td>' +
+    '<td><textarea rows="2" placeholder="Бележка към шофьора..." onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#7c3aed;width:100%;border:none;background:transparent;font-size:12px;padding:3px 5px;font-family:inherit;outline:none;resize:vertical">' + (r.officeNote||'') + '</textarea></td>' +
     '<td style="text-align:center">' + supplierHtml + timerHtml + '<br>' + badge + '</td>' +
+    '<td class="sp-btn-cell">' + spCell + '</td>' +
     '<td><button class="del-btn" onclick="deleteRow(' + r.id + ')">✕</button></td>';
   tbody.appendChild(tr);
 }
@@ -776,17 +768,10 @@ function confirmDone() {
   });
 }
 
-var autoSaveTimers = {};
 function updateField(id, field, val) {
   var r = rows.find(function(x) { return x.id===id; });
   if (r) { r[field] = val; r.savedToSP = false; }
   updateStats();
-  if (autoSaveTimers[id]) clearTimeout(autoSaveTimers[id]);
-  autoSaveTimers[id] = setTimeout(function() {
-    delete autoSaveTimers[id];
-    var row = rows.find(function(x) { return x.id===id; });
-    if (row && !row.savedToSP) saveRowToSharePoint(id);
-  }, 1500);
 }
 function deleteRow(id) {
   rows = rows.filter(function(x) { return x.id!==id; });
