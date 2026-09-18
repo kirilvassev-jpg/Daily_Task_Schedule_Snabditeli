@@ -492,7 +492,7 @@ function updateDriverStatus() {
     var card = document.createElement('div');
     card.className = 'driver-card' + (activeTask ? ' busy' : '');
     card.innerHTML =
-      '<div class="driver-card-name">🚚 ' + name + '</div>' +
+      '<div class="driver-card-name"><img src="icon-512.png" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;margin-right:4px">' + name + '</div>' +
       '<div class="driver-card-status">' + (activeTask ? '🟡 Зает' : '🟢 Свободен') + '</div>' +
       (activeTask ? '<div class="driver-card-task">📦 ' + (activeTask.firma||'—') + '<br>📍 ' + (activeTask.place||'—') + '</div>' : '');
     container.appendChild(card);
