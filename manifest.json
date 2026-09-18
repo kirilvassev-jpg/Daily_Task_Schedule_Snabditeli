@@ -1,7 +1,7 @@
 {
   "name": "Задачи Снабдители",
   "short_name": "Задачи",
-  "description": "Задачи за снабдители",
+  "description": "Raicommerce Construction - Логистика",
   "start_url": "/Daily_Task_Schedule_Snabditeli/Driver_view.html",
   "display": "standalone",
   "background_color": "#1a3a6b",
@@ -9,14 +9,10 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1048/1048313.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/1048/1048313.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
