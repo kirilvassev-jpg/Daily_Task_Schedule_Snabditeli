@@ -416,7 +416,7 @@ async function loginOffice() {
   el.style.display = "none";
   try {
     var instance = await getMsal();
-    var result = await instance.loginPopup({ scopes: ["openid","profile","User.Read"] });
+    var result = await instance.loginPopup({ scopes: ["openid","profile","User.Read"], prompt: "select_account" });
     var email = result.account.username.toLowerCase();
     if (!email.endsWith("@raicommerce.bg")) {
       instance.logoutPopup();
