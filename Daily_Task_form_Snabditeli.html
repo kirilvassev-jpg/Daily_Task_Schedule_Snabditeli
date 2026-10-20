@@ -401,34 +401,43 @@ var msalConfig = {
     authority: "https://login.microsoftonline.com/0b822811-c53c-4f5e-9444-350c2fb3f935",
     redirectUri: window.location.origin + window.location.pathname
   },
-  cache: { cacheLocation: "localStorage" }
+  cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: false }
 };
-var msalInstance = new msal.PublicClientApplication(msalConfig);
-var msalReady = msalInstance.initialize().then(function() { console.log("MSAL ready"); });
-function loginOffice() {
-  msalReady.then(function() {
-    msalInstance.loginPopup({ scopes: ["User.Read"] }).then(function(response) {
-      var email = response.account.username.toLowerCase();
-      if (!email.endsWith("@raicommerce.bg")) {
-        msalInstance.logoutPopup();
-        document.getElementById("officeError").textContent = "❌ Само за служители на Райкомерс!";
-        document.getElementById("officeError").style.display = "block";
-        return;
-      }
-      currentUser = response.account.name || email;
-      currentRole = "office";
-      document.getElementById("loginScreen").style.display = "none";
-      document.getElementById("appContent").style.display = "block";
-      document.getElementById("modeToggle").style.display = "flex";
-      setMode("office");
-      loadFromSharePoint();
-      startAutoRefresh();
-    }).catch(function(err) {
-      console.error("MSAL login error:", err);
-      document.getElementById("officeError").textContent = "❌ " + err.message;
-      document.getElementById("officeError").style.display = "block";
-    });
-  });
+var msalInstance = null;
+async function getMsal() {
+  if (!msalInstance) {
+    msalInstance = new msal.PublicClientApplication(msalConfig);
+    await msalInstance.initialize();
+  }
+  return msalInstance;
+}
+async function loginOffice() {
+  var el = document.getElementById("officeError");
+  el.style.display = "none";
+  try {
+    var instance = await getMsal();
+    var result = await instance.loginPopup({ scopes: ["openid","profile","User.Read"] });
+    var email = result.account.username.toLowerCase();
+    if (!email.endsWith("@raicommerce.bg")) {
+      instance.logoutPopup();
+      el.textContent = "❌ Само за служители на Райкомерс!";
+      el.style.display = "block";
+      return;
+    }
+    currentUser = result.account.name || email;
+    currentRole = "office";
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+    document.getElementById("modeToggle").style.display = "flex";
+    setMode("office");
+    loadFromSharePoint();
+    startAutoRefresh();
+  } catch(err) {
+    if (err.errorCode !== "user_cancelled") {
+      el.textContent = "❌ " + (err.errorMessage || err.message);
+      el.style.display = "block";
+    }
+  }
 }
 function loginDriver() {
   var name = document.getElementById("driverLoginSelect").value;
