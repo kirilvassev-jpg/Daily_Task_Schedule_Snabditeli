@@ -403,11 +403,8 @@ var msalConfig = {
   },
   cache: { cacheLocation: "localStorage" }
 };
-var msalInstance = null;
-var msalReady = new msal.PublicClientApplication(msalConfig).initialize().then(function() {
-  msalInstance = new msal.PublicClientApplication(msalConfig);
-  return msalInstance.initialize();
-}).then(function() { console.log("MSAL ready"); });
+var msalInstance = new msal.PublicClientApplication(msalConfig);
+var msalReady = msalInstance.initialize().then(function() { console.log("MSAL ready"); });
 function loginOffice() {
   msalReady.then(function() {
     msalInstance.loginPopup({ scopes: ["User.Read"] }).then(function(response) {
