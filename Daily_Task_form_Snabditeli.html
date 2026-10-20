@@ -149,9 +149,7 @@ tbody tr.status-overdue-red { background: #fef2f2 !important; }
 .overdue-banner.show { display: flex; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/msal-browser/3.6.0/msal-browser.min.js"></script>
 </head>
 <body>
 
@@ -348,6 +346,7 @@ var msalConfig = {
   cache: { cacheLocation: "localStorage" }
 };
 var msalInstance = new msal.PublicClientApplication(msalConfig);
+msalInstance.initialize().then(function() { console.log("MSAL ready"); }).catch(function(e) { console.error("MSAL init error:", e); });
 /* ── MSAL Config ── */
 var msalConfig = {
   auth: {
@@ -358,6 +357,7 @@ var msalConfig = {
   cache: { cacheLocation: "localStorage" }
 };
 var msalInstance = new msal.PublicClientApplication(msalConfig);
+msalInstance.initialize().then(function() { console.log("MSAL ready"); }).catch(function(e) { console.error("MSAL init error:", e); });
 /* ── MSAL Config ── */
 var msalConfig = {
   auth: {
@@ -368,6 +368,7 @@ var msalConfig = {
   cache: { cacheLocation: "localStorage" }
 };
 var msalInstance = new msal.PublicClientApplication(msalConfig);
+msalInstance.initialize().then(function() { console.log("MSAL ready"); }).catch(function(e) { console.error("MSAL init error:", e); });
 var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
