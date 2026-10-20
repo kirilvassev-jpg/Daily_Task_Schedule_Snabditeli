@@ -180,7 +180,11 @@ tbody tr.status-overdue-red { background: #fef2f2 !important; }
           <option>Николай Пейчинов</option>
         </select>
       </div>
-      <button class="login-btn green" onclick="loginDriver()">🚚 Влез като Шофьор</button>
+      <div style="margin-top:12px">
+        <label>🔐 PIN код</label>
+        <input id="driverPinInput" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="4-цифрен код" style="width:100%;box-sizing:border-box;text-align:center;font-size:20px;letter-spacing:8px;padding:10px;border:2px solid #e5e7eb;border-radius:8px;outline:none;">
+      </div>
+      <div class="login-error" id="driverPinError" style="display:none">❌ Грешен PIN код!</div>
       <div class="login-error" id="driverError">❌ Моля изберете вашето ime!</div>
     </div>
   </div>
@@ -400,13 +404,18 @@ function loginOffice() {
   startAutoRefresh();
 }
 function loginDriver() {
-  var name = document.getElementById('driverLoginSelect').value;
-  if (!name) { document.getElementById('driverError').style.display = 'block'; return; }
-  currentUser = name; currentRole = 'driver';
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appContent').style.display = 'block';
-  document.getElementById('modeToggle').style.display = 'none';
-  setMode('driver');
+  var name = document.getElementById("driverLoginSelect").value;
+  if (!name) { document.getElementById("driverError").style.display = "block"; return; }
+  document.getElementById("driverError").style.display = "none";
+  var PINS = {"Ангел Драгомиров":"1001","Димитър Йотов":"1002","Николай Пейчинов":"1003"};
+  var pin = document.getElementById("driverPinInput").value;
+  if (pin !== PINS[name]) { document.getElementById("driverPinError").style.display = "block"; return; }
+  document.getElementById("driverPinError").style.display = "none";
+  currentUser = name; currentRole = "driver";
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("appContent").style.display = "block";
+  document.getElementById("modeToggle").style.display = "none";
+  setMode("driver");
   loadFromSharePoint();
   startAutoRefresh();
 }
