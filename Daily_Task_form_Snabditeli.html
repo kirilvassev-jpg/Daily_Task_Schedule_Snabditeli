@@ -338,39 +338,6 @@ tbody tr.status-overdue-red { background: #fef2f2 !important; }
 <div class="notif" id="notif"></div>
 
 <script>
-/* ── MSAL Config ── */
-var msalConfig = {
-  auth: {
-    clientId: "8cb8b044-d527-41c2-9675-d13593dcece7",
-    authority: "https://login.microsoftonline.com/0b822811-c53c-4f5e-9444-350c2fb3f935",
-    redirectUri: window.location.origin + window.location.pathname
-  },
-  cache: { cacheLocation: "localStorage" }
-};
-var msalInstance = new msal.PublicClientApplication(msalConfig);
-msalInstance.initialize().then(function() { console.log("MSAL ready"); }).catch(function(e) { console.error("MSAL init error:", e); });
-/* ── MSAL Config ── */
-var msalConfig = {
-  auth: {
-    clientId: "8cb8b044-d527-41c2-9675-d13593dcece7",
-    authority: "https://login.microsoftonline.com/0b822811-c53c-4f5e-9444-350c2fb3f935",
-    redirectUri: window.location.origin + window.location.pathname
-  },
-  cache: { cacheLocation: "localStorage" }
-};
-var msalInstance = new msal.PublicClientApplication(msalConfig);
-msalInstance.initialize().then(function() { console.log("MSAL ready"); }).catch(function(e) { console.error("MSAL init error:", e); });
-/* ── MSAL Config ── */
-var msalConfig = {
-  auth: {
-    clientId: "8cb8b044-d527-41c2-9675-d13593dcece7",
-    authority: "https://login.microsoftonline.com/0b822811-c53c-4f5e-9444-350c2fb3f935",
-    redirectUri: window.location.origin + window.location.pathname
-  },
-  cache: { cacheLocation: "localStorage" }
-};
-var msalInstance = new msal.PublicClientApplication(msalConfig);
-msalInstance.initialize().then(function() { console.log("MSAL ready"); }).catch(function(e) { console.error("MSAL init error:", e); });
 var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
 var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
 var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
@@ -427,27 +394,43 @@ function switchLoginTab(tab) {
   document.getElementById('officeError').style.display = 'none';
   document.getElementById('driverError').style.display = 'none';
 }
+/* ── MSAL Config ── */
+var msalConfig = {
+  auth: {
+    clientId: "8cb8b044-d527-41c2-9675-d13593dcece7",
+    authority: "https://login.microsoftonline.com/0b822811-c53c-4f5e-9444-350c2fb3f935",
+    redirectUri: window.location.origin + window.location.pathname
+  },
+  cache: { cacheLocation: "localStorage" }
+};
+var msalInstance = null;
+var msalReady = new msal.PublicClientApplication(msalConfig).initialize().then(function() {
+  msalInstance = new msal.PublicClientApplication(msalConfig);
+  return msalInstance.initialize();
+}).then(function() { console.log("MSAL ready"); });
 function loginOffice() {
-  msalInstance.loginPopup({ scopes: ["User.Read"] }).then(function(response) {
-    var email = response.account.username.toLowerCase();
-    if (!email.endsWith("@raicommerce.bg")) {
-      msalInstance.logoutPopup();
-      document.getElementById("officeError").textContent = "❌ Само за служители на Райкомерс!";
+  msalReady.then(function() {
+    msalInstance.loginPopup({ scopes: ["User.Read"] }).then(function(response) {
+      var email = response.account.username.toLowerCase();
+      if (!email.endsWith("@raicommerce.bg")) {
+        msalInstance.logoutPopup();
+        document.getElementById("officeError").textContent = "❌ Само за служители на Райкомерс!";
+        document.getElementById("officeError").style.display = "block";
+        return;
+      }
+      currentUser = response.account.name || email;
+      currentRole = "office";
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("appContent").style.display = "block";
+      document.getElementById("modeToggle").style.display = "flex";
+      setMode("office");
+      loadFromSharePoint();
+      startAutoRefresh();
+    }).catch(function(err) {
+      console.error("MSAL login error:", err);
+      document.getElementById("officeError").textContent = "❌ " + err.message;
       document.getElementById("officeError").style.display = "block";
-      return;
-    }
-    currentUser = response.account.name || email;
-    currentRole = "office";
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("appContent").style.display = "block";
-    document.getElementById("modeToggle").style.display = "flex";
-    setMode("office");
-    loadFromSharePoint();
-    startAutoRefresh();
-  }).catch(function(err) {
-    console.error("MSAL error:", err);
-    document.getElementById("officeError").textContent = "❌ Грешка при вход: " + err.message;
-    document.getElementById("officeError").style.display = "block";
+    });
   });
 }
 function loginDriver() {
