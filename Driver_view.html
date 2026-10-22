@@ -583,6 +583,7 @@ function renderCards() {
         '<div class="card-field highlight"><label>Място на доставка</label><span>' + (r.place||'—') + '</span></div>' +
         '<div class="card-field"><label>Срок</label><span>' + deadlineIcon(r.deadline) + (r.deadline||'—') + '</span></div>' +
       '</div>' +
+      '<div class="card-row"><div class="card-field"><label>📋 Добавена от</label><span style="color:#2563eb;font-weight:600">' + (r.specialist||'—') + '</span></div></div>' +
       '<div class="card-actions">' + actionsHtml + '</div>' + noteHtml;
     container.appendChild(card);
   }
