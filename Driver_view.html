@@ -100,8 +100,14 @@ body { font-family: 'Roboto', Arial, sans-serif; background: linear-gradient(180
   <div style="background:#fff;border-radius:16px;padding:32px;width:300px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.25);">
     <div style="font-size:40px;margin-bottom:12px;">🔐</div>
     <div style="font-size:18px;font-weight:700;color:#1e3a5f;margin-bottom:4px;">Вход за шофьори</div>
-    <div style="font-size:13px;color:#6b7280;margin-bottom:20px;">Въведи своя 4-цифрен PIN код</div>
-    <input id="pinInput" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="• • • •" style="width:100%;box-sizing:border-box;text-align:center;font-size:28px;letter-spacing:12px;padding:12px;border:2px solid #e5e7eb;border-radius:10px;outline:none;margin-bottom:16px;" oninput="if(this.value.length===4)verifyPin()">
+    <div style="font-size:13px;color:#6b7280;margin-bottom:16px;">Избери името си и въведи 6-цифрения PIN код</div>
+    <select id="loginName" style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:2px solid #d1d5db;border-radius:10px;margin-bottom:12px;background:#fff;">
+      <option value="">— Избери име —</option>
+      <option>Ангел Драгомиров</option>
+      <option>Димитър Йотов</option>
+      <option>Николай Пейчинов</option>
+    </select>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="• • • • • •" autocomplete="off" onkeydown="if(event.key==='Enter')verifyPin()" style="width:100%;box-sizing:border-box;text-align:center;font-size:26px;letter-spacing:6px;padding:12px;border:2px solid #d1d5db;border-radius:10px;margin-bottom:8px;">
     <div id="pinError" style="color:#dc2626;font-size:13px;min-height:20px;margin-bottom:12px;"></div>
     <button onclick="verifyPin()" style="width:100%;padding:14px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;">Вход</button>
   </div>
@@ -240,9 +246,35 @@ var VAPID_KEY = 'BNozbSmSA31rby9xzDqZvr1Jbf8D6J_jnIMRrJ3g2Fp3-6GenMqgdAvHcp4GKJ_
 var FIRESTORE_TOKENS_URL = 'https://firestore.googleapis.com/v1/projects/snabditeli-daily-tasks/databases/(default)/documents/fcm_tokens/';
 firebase.initializeApp(FIREBASE_CONFIG);
 
-var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
-var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
-var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
+// Връзката към Power Automate минава през Supabase Edge Function flow-proxy.
+// URL адресите на flow-овете НЕ са в тази страница – пазят се като Secrets в Supabase.
+var SUPABASE_URL = "https://wcsdjfsohqanxcppcvvk.supabase.co";
+var SUPABASE_KEY = "sb_publishable_aMxRatJ2BJxE5vQIhffing_8_zMpBDO";
+var PROXY_URL    = SUPABASE_URL + "/functions/v1/flow-proxy";
+var SAVE_FLOW_URL = "save", GET_FLOW_URL = "get", UPDATE_FLOW_URL = "update";
+
+function showLogin(msg) {
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("pinError").textContent = msg || "";
+}
+function flowFetch(action, opts) {
+  var tok = localStorage.getItem("dtToken");
+  if (!tok) { showLogin(""); return Promise.reject("http_auth"); }
+  var data = {};
+  try { data = (opts && opts.body) ? JSON.parse(opts.body) : {}; } catch (e) {}
+  return fetch(PROXY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "x-driver-token": tok },
+    body: JSON.stringify({ app: "daily-tasks", action: action, data: data })
+  }).then(function(res) {
+    if (res.status === 401) {
+      localStorage.removeItem("dtToken");
+      showLogin("⚠️ Пропускът е изтекъл. Влез отново с PIN кода.");
+      return Promise.reject("http_401");
+    }
+    return res;
+  });
+}
 
 var rows = [];
 var pendingTakeId = null, pendingDoneId = null;
@@ -348,24 +380,37 @@ function registerFCM() {
   });
 }
 /* ── PIN Login ── */
-var DRIVER_PINS = {
-  "1001": "Ангел Драгомиров",
-  "1002": "Димитър Йотов",
-  "1003": "Николай Пейчинов"
-};
-var loggedDriver = localStorage.getItem("driverName") || null;
+var loggedDriver = localStorage.getItem("dtToken") ? (localStorage.getItem("driverName") || null) : null;
 if (loggedDriver) { document.getElementById("loginScreen").style.display = "none"; }
 function verifyPin() {
-  var pin = document.getElementById("pinInput").value;
-  if (DRIVER_PINS[pin]) {
-    loggedDriver = DRIVER_PINS[pin];
-    localStorage.setItem("driverName", loggedDriver);
-    document.getElementById("loginScreen").style.display = "none";
-  } else {
-    document.getElementById("pinError").textContent = "❌ Грешен PIN код";
+  var name = document.getElementById("loginName").value;
+  var pin  = document.getElementById("pinInput").value.trim();
+  var err  = document.getElementById("pinError");
+  if (!name) { err.textContent = "❌ Избери името си"; return; }
+  if (!/^\d{6}$/.test(pin)) { err.textContent = "❌ PIN кодът е 6 цифри"; return; }
+  err.textContent = "⏳ Проверка...";
+  fetch(PROXY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
+    body: JSON.stringify({ app: "daily-tasks", action: "driver-login", data: { name: name, pin: pin } })
+  }).then(function(res) {
+    return res.json().then(function(j) { return { status: res.status, body: j }; });
+  }).then(function(r) {
     document.getElementById("pinInput").value = "";
-    document.getElementById("pinInput").focus();
-  }
+    if (r.status === 200 && r.body.token) {
+      localStorage.setItem("dtToken", r.body.token);
+      localStorage.setItem("driverName", r.body.name);
+      loggedDriver = r.body.name;
+      err.textContent = "";
+      document.getElementById("loginScreen").style.display = "none";
+      loadTasks(0);
+    } else if (r.status === 423) {
+      err.textContent = "🔒 Твърде много грешни опити. Опитай след 15 минути.";
+    } else {
+      err.textContent = "❌ Грешно име или PIN код";
+      document.getElementById("pinInput").focus();
+    }
+  }).catch(function() { err.textContent = "⚠️ Няма връзка. Опитай пак."; });
 }
 
 
@@ -477,7 +522,7 @@ function startAutoRefresh() {
 
 // ── Load tasks ──
 function loadTasks(retryCount) {
-  fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
+  flowFetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) {
       if (res.status === 502 || res.status === 503 || res.status === 504) {
         if (retryCount < 4) {
@@ -614,7 +659,7 @@ function confirmAdd() {
   if (!direction) { showToast('❌ Изберете направление!', true); return; }
   closeAddModal();
   showToast('⏳ Записване...');
-  fetch(SAVE_FLOW_URL, {
+  flowFetch(SAVE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ date:todayStr(), specialist:'', direction:direction, deadline:todayStr(), supplier:firma, place:place, driver:driver, officeNote:'', status:'За изпълнение' })
   })
@@ -651,7 +696,7 @@ function confirmTake() {
   closeTakeModal(); renderCards(); updateStats();
   dismissBanner();
   showToast('⏳ Записване...');
-  fetch(UPDATE_FLOW_URL, {
+  flowFetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'', officeNote:r.officeNote||'', place:r.place||'' })
   })
@@ -662,7 +707,7 @@ function confirmTake() {
     } else if (res.status === 502 || res.status === 503 || res.status === 504) {
       showToast('⏳ Опитвам пак...');
       setTimeout(function() {
-        fetch(UPDATE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'', officeNote:r.officeNote||'', place:r.place||'' }) })
+        flowFetch(UPDATE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:spId, status:'В процес на изпълнение', driver:driver, deliveredOn:null, note:'', officeNote:r.officeNote||'', place:r.place||'' }) })
         .then(function(res2) {
           if (res2.ok) { showToast('✅ Задачата е поета!'); setTimeout(function() { delete lockedIds[spId]; }, 30000); }
           else { showToast('❌ Грешка: ' + res2.status, true); delete lockedIds[spId]; }
@@ -696,7 +741,7 @@ function confirmDone() {
   closeDoneModal();
   dismissBanner();
   showToast('⏳ Записване...');
-  fetch(UPDATE_FLOW_URL, {
+  flowFetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ id:r.spId, status:'Изпълнена', driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note })
   })
@@ -708,7 +753,7 @@ function confirmDone() {
     } else if (res.status === 502 || res.status === 503 || res.status === 504) {
       showToast('⏳ Опитвам пак...');
       setTimeout(function() {
-        fetch(UPDATE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:r.spId, status:'Изпълнена', driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note }) })
+        flowFetch(UPDATE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:r.spId, status:'Изпълнена', driver:r.supplier, deliveredOn:r.deliveredOn, note:r.note }) })
         .then(function(res2) {
           if (res2.ok) { rows = rows.filter(function(x) { return x.spId !== r.spId; }); renderCards(); updateStats(); showToast('✅ Изпълнена и архивирана!'); }
           else { showToast('❌ Грешка: ' + res2.status, true); }
