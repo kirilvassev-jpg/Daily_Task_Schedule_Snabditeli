@@ -454,6 +454,9 @@ function startAutoRefresh() {
 }
 
 function silentRefresh() {
+  // Ако в момента се записва задача, пропускаме този цикъл – иначе новият запис
+  // може да се появи два пъти (преди страницата да е получила ID-то му).
+  if (rows.some(function(x) { return x.isSaving; })) return;
   flowFetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
@@ -620,6 +623,10 @@ function saveRowToSharePoint(id, callback) {
       if (!data) return;
       r.spId = data.id || data.ID || data.ItemId || data.itemId || null;
       r.savedToSP = true; r.isSaving = false;
+      if (r.spId) {
+        // ако автоматичното обновяване вече е добавило същия запис – махаме дубликата
+        rows = rows.filter(function(x) { return x === r || x.spId != r.spId; });
+      }
       rebuildTable(); showToast('✅ Записано в SharePoint!');
       document.getElementById('lastSaved').textContent = nowStr();
       var fn = r._pendingFn; r._pendingFn = null;
