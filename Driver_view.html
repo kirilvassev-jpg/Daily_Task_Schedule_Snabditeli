@@ -253,6 +253,13 @@ var SUPABASE_KEY = "sb_publishable_aMxRatJ2BJxE5vQIhffing_8_zMpBDO";
 var PROXY_URL    = SUPABASE_URL + "/functions/v1/flow-proxy";
 var SAVE_FLOW_URL = "save", GET_FLOW_URL = "get", UPDATE_FLOW_URL = "update";
 
+// Пропускът се пази и в Cache Storage, за да може фоновата проверка (service worker) да го ползва
+function storeTokenForSW(tok) {
+  if (!('caches' in window)) return;
+  caches.open('driver-auth').then(function(c) {
+    return tok ? c.put('token', new Response(tok)) : c.delete('token');
+  }).catch(function() {});
+}
 function showLogin(msg) {
   document.getElementById("loginScreen").style.display = "flex";
   document.getElementById("pinError").textContent = msg || "";
@@ -269,6 +276,7 @@ function flowFetch(action, opts) {
   }).then(function(res) {
     if (res.status === 401) {
       localStorage.removeItem("dtToken");
+      storeTokenForSW(null);
       showLogin("⚠️ Пропускът е изтекъл. Влез отново с PIN кода.");
       return Promise.reject("http_401");
     }
@@ -381,7 +389,10 @@ function registerFCM() {
 }
 /* ── PIN Login ── */
 var loggedDriver = localStorage.getItem("dtToken") ? (localStorage.getItem("driverName") || null) : null;
-if (loggedDriver) { document.getElementById("loginScreen").style.display = "none"; }
+if (loggedDriver) {
+  document.getElementById("loginScreen").style.display = "none";
+  storeTokenForSW(localStorage.getItem("dtToken"));
+}
 function verifyPin() {
   var name = document.getElementById("loginName").value;
   var pin  = document.getElementById("pinInput").value.trim();
@@ -399,6 +410,7 @@ function verifyPin() {
     document.getElementById("pinInput").value = "";
     if (r.status === 200 && r.body.token) {
       localStorage.setItem("dtToken", r.body.token);
+      storeTokenForSW(r.body.token);
       localStorage.setItem("driverName", r.body.name);
       loggedDriver = r.body.name;
       err.textContent = "";

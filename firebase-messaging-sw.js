@@ -5,7 +5,11 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 var CACHE_NAME = 'zadachi-fcm-v1';
-var GET_FLOW_URL = 'https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y';
+// Фоновата проверка минава през Supabase Edge Function flow-proxy с пропуска на шофьора.
+// URL адресът на flow-а НЕ е в този файл – пази се като Secret в Supabase.
+var PROXY_URL    = 'https://wcsdjfsohqanxcppcvvk.supabase.co/functions/v1/flow-proxy';
+var SUPABASE_KEY = 'sb_publishable_aMxRatJ2BJxE5vQIhffing_8_zMpBDO';
+var AUTH_CACHE   = 'driver-auth'; // тук Driver_view записва пропуска на шофьора
 var KNOWN_IDS_CACHE = 'known-task-ids-v2';
 
 firebase.initializeApp({
@@ -41,13 +45,26 @@ self.addEventListener('periodicsync', function(e) {
   }
 });
 
+function getDriverToken() {
+  return caches.open(AUTH_CACHE)
+    .then(function(c) { return c.match('token'); })
+    .then(function(r) { return r ? r.text() : null; })
+    .catch(function() { return null; });
+}
+
 function checkForNewTasksInBackground() {
-  return fetch(GET_FLOW_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: '{}'
+  return getDriverToken().then(function(tok) {
+    if (!tok) return Promise.reject('no_token'); // шофьорът не е влязъл – няма фонова проверка
+    return fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'x-driver-token': tok },
+      body: JSON.stringify({ app: 'daily-tasks', action: 'get', data: {} })
+    });
   })
-  .then(function(res) { return res.json(); })
+  .then(function(res) {
+    if (!res.ok) return Promise.reject('http_' + res.status);
+    return res.json();
+  })
   .then(function(data) {
     var items = data.value || [];
     var currentIds = items
@@ -99,7 +116,7 @@ self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
       return Promise.all(
-        keys.filter(function(k) { return k !== CACHE_NAME && k !== KNOWN_IDS_CACHE; })
+        keys.filter(function(k) { return k !== CACHE_NAME && k !== KNOWN_IDS_CACHE && k !== AUTH_CACHE; })
             .map(function(k) { return caches.delete(k); })
       );
     })
