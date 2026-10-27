@@ -321,7 +321,7 @@ tbody tr.status-overdue-red { background: #fef2f2 !important; }
 // Връзката към Power Automate минава през Supabase Edge Function flow-proxy.
 // URL адресите на flow-овете НЕ са в тази страница – пазят се като Secrets в Supabase.
 var SUPABASE_URL = "https://wcsdjfsohqanxcppcvvk.supabase.co";
-var SUPABASE_KEY = "ПОСТАВИ_ТУК_PUBLISHABLE_KEY"; // Supabase → Project Settings → API Keys (sb_publishable_... или anon)
+var SUPABASE_KEY = "sb_publishable_aMxRatJ2BJxE5vQIhffing_8_zMpBDO"; // Supabase → Project Settings → API Keys (sb_publishable_... или anon)
 var PROXY_URL    = SUPABASE_URL + "/functions/v1/flow-proxy";
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var SAVE_FLOW_URL = "save", GET_FLOW_URL = "get", UPDATE_FLOW_URL = "update";
