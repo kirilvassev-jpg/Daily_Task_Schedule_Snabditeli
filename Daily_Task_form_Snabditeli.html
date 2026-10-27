@@ -149,7 +149,7 @@ tbody tr.status-overdue-red { background: #fef2f2 !important; }
 .overdue-banner.show { display: flex; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -159,36 +159,16 @@ tbody tr.status-overdue-red { background: #fef2f2 !important; }
     <div class="login-logo">📋</div>
     <h2>Задачи на снабдителите</h2>
     <p>Влезте с вашия профил</p>
-    <div class="login-tabs">
-      <button class="login-tab active" onclick="switchLoginTab('office')">🖥️ Офис</button>
-      <button class="login-tab" onclick="switchLoginTab('driver')">🚚 Шофьор</button>
-    </div>
     <div id="officeLogin">
       <div style="text-align:center;padding:10px 0">
-        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Влезте с вашия фирмен акаунт</p>
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Влезте с вашия фирмен Microsoft акаунт</p>
         <button class="login-btn" onclick="loginOffice()" style="display:flex;align-items:center;justify-content:center;gap:8px">
           <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.svg" width="20" height="20" alt="MS">
           Вход с Microsoft акаунт
         </button>
+        <p style="font-size:12px;color:#6b7280;margin-top:14px">Шофьорите влизат през страницата за шофьори.</p>
       </div>
       <div class="login-error" id="officeError"></div>
-    </div>
-    <div id="driverLogin" style="display:none">
-      <div class="login-field">
-        <label>👤 Вашето ime</label>
-        <select id="driverLoginSelect">
-          <option value="">— Изберете —</option>
-          <option>Ангел Драгомиров</option>
-          <option>Димитър Йотов</option>
-          <option>Николай Пейчинов</option>
-        </select>
-      </div>
-      <div style="margin-top:12px">
-        <label>🔐 PIN код</label>
-        <input id="driverPinInput" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="4-цифрен код" style="width:100%;box-sizing:border-box;text-align:center;font-size:20px;letter-spacing:8px;padding:10px;border:2px solid #e5e7eb;border-radius:8px;outline:none;">
-      </div>
-      <div class="login-error" id="driverPinError" style="display:none">❌ Грешен PIN код!</div>
-      <div class="login-error" id="driverError">❌ Моля изберете вашето ime!</div>
     </div>
   </div>
 </div>
@@ -338,11 +318,29 @@ tbody tr.status-overdue-red { background: #fef2f2 !important; }
 <div class="notif" id="notif"></div>
 
 <script>
-var SAVE_FLOW_URL   = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c0242a298f3d4191a6ce60c9ea059d2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yn43qqKHkv3hu2Z9j2pEJqfBJl-okCVmBHXywfqu21E";
-var GET_FLOW_URL    = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/537e731e7e054f99a1cb0f170de2bc59/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eRDW8qfFUo9l8Zyc1WVSSqG4797UCNv46FP0ZO2hp4Y";
-var UPDATE_FLOW_URL = "https://default0b822811c53c4f5e9444350c2fb3f9.35.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d1881949a415486794ca2bcd2a3346a3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=n4FwOXfQT8_hwDt63n-KXQFVrqkxE_rMAEYw8FM6Uig";
+// Връзката към Power Automate минава през Supabase Edge Function flow-proxy.
+// URL адресите на flow-овете НЕ са в тази страница – пазят се като Secrets в Supabase.
+var SUPABASE_URL = "https://wcsdjfsohqanxcppcvvk.supabase.co";
+var SUPABASE_KEY = "ПОСТАВИ_ТУК_PUBLISHABLE_KEY"; // Supabase → Project Settings → API Keys (sb_publishable_... или anon)
+var PROXY_URL    = SUPABASE_URL + "/functions/v1/flow-proxy";
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var SAVE_FLOW_URL = "save", GET_FLOW_URL = "get", UPDATE_FLOW_URL = "update";
 
-var OFFICE_PASSWORD = 'office2026';
+function flowFetch(action, opts) {
+  var data = {};
+  try { data = (opts && opts.body) ? JSON.parse(opts.body) : {}; } catch (e) {}
+  return sb.auth.getSession().then(function(r) {
+    var session = r.data.session;
+    var headers = { "Content-Type": "application/json", "apikey": SUPABASE_KEY };
+    if (session) headers["Authorization"] = "Bearer " + session.access_token;
+    return fetch(PROXY_URL, { method: "POST", headers: headers,
+      body: JSON.stringify({ app: "daily-tasks", action: action, data: data }) });
+  }).then(function(res) {
+    if (res.status === 401 || res.status === 403) handleAuthError(res.status);
+    return res;
+  });
+}
+
 var currentUser = null, currentRole = null;
 var SPECIALISTS = ['Димитрина Младенова','Димитър Йотов','Йовко Иванов','Кирил Васев','Мария Козарева','Милен Медаров','Николай Динчов','Петя Стоицова','Таня Стоянова','Христо Христов'];
 var DIRECTIONS  = ['Всички направления','Администрация/Управителен съвет','Безизкопни технологии','ВиК Строителство и поддръжка','Инфраструктурно строителство','Механизация и транспорт','РаТек ООД','Строителство на сгради и съоръжения','Стройкомерс Плевен'];
@@ -385,84 +383,50 @@ function deadlineIcon(deadline) {
 }
 
 // ── Login ──
-function switchLoginTab(tab) {
-  document.querySelectorAll('.login-tab').forEach(function(b, i) {
-    b.classList.toggle('active', (tab==='office'&&i===0)||(tab==='driver'&&i===1));
-  });
-  document.getElementById('officeLogin').style.display = tab==='office' ? 'block' : 'none';
-  document.getElementById('driverLogin').style.display = tab==='driver' ? 'block' : 'none';
-  document.getElementById('officeError').style.display = 'none';
-  document.getElementById('driverError').style.display = 'none';
-}
-/* ── MSAL Config ── */
-var msalConfig = {
-  auth: {
-    clientId: "8cb8b044-d527-41c2-9675-d13593dcece7",
-    authority: "https://login.microsoftonline.com/0b822811-c53c-4f5e-9444-350c2fb3f935",
-    redirectUri: window.location.origin + window.location.pathname
-  },
-  cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: false }
-};
-var msalInstance = null;
-async function getMsal() {
-  if (!msalInstance) {
-    msalInstance = new msal.PublicClientApplication(msalConfig);
-    await msalInstance.initialize();
-  }
-  return msalInstance;
-}
+/* ── Вход с Microsoft (през Supabase) ── */
 async function loginOffice() {
   var el = document.getElementById("officeError");
   el.style.display = "none";
-  try {
-    var instance = await getMsal();
-    var result = await instance.loginPopup({ scopes: ["openid","profile","User.Read"], prompt: "select_account" });
-    var email = result.account.username.toLowerCase();
-    if (!email.endsWith("@raicommerce.bg")) {
-      instance.logoutPopup();
-      el.textContent = "❌ Само за служители на Райкомерс!";
-      el.style.display = "block";
-      return;
-    }
-    currentUser = result.account.name || email;
-    currentRole = "office";
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("appContent").style.display = "block";
-    document.getElementById("modeToggle").style.display = "flex";
-    setMode("office");
-    loadFromSharePoint();
-    startAutoRefresh();
-  } catch(err) {
-    if (err.errorCode !== "user_cancelled") {
-      el.textContent = "❌ " + (err.errorMessage || err.message);
-      el.style.display = "block";
-    }
-  }
+  var res = await sb.auth.signInWithOAuth({
+    provider: "azure",
+    options: { scopes: "email", redirectTo: window.location.origin + window.location.pathname }
+  });
+  if (res.error) { el.textContent = "❌ " + res.error.message; el.style.display = "block"; }
 }
-function loginDriver() {
-  var name = document.getElementById("driverLoginSelect").value;
-  if (!name) { document.getElementById("driverError").style.display = "block"; return; }
-  document.getElementById("driverError").style.display = "none";
-  var PINS = {"Ангел Драгомиров":"1001","Димитър Йотов":"1002","Николай Пейчинов":"1003"};
-  var pin = document.getElementById("driverPinInput").value;
-  if (pin !== PINS[name]) { document.getElementById("driverPinError").style.display = "block"; return; }
-  document.getElementById("driverPinError").style.display = "none";
-  currentUser = name; currentRole = "driver";
+function enterOffice(session) {
+  var u = session.user || {};
+  currentUser = (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || u.email;
+  currentRole = "office";
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appContent").style.display = "block";
-  document.getElementById("modeToggle").style.display = "none";
-  setMode("driver");
+  document.getElementById("modeToggle").style.display = "flex";
+  setMode("office");
   loadFromSharePoint();
   startAutoRefresh();
+}
+function handleAuthError(status) {
+  if (countdownTimer) clearInterval(countdownTimer);
+  currentUser = null; currentRole = null;
+  document.getElementById("appContent").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+  var el = document.getElementById("officeError");
+  el.textContent = status === 403
+    ? "❌ Нямате достъп до това приложение. Свържете се с администратора."
+    : "⚠️ Сесията е изтекла. Влезте отново.";
+  el.style.display = "block";
+  if (status === 403) sb.auth.signOut();
+}
+async function initAuth() {
+  var r = await sb.auth.getSession();
+  if (r.data.session) enterOffice(r.data.session);
 }
 function logout() {
   if (!confirm('Сигурни ли сте?')) return;
   currentUser = null; currentRole = null;
   if (countdownTimer) clearInterval(countdownTimer);
+  sb.auth.signOut();
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('appContent').style.display = 'none';
-  document.getElementById('officePassword').value = '';
-  document.getElementById('driverLoginSelect').value = '';
 }
 
 // ── Mode ──
@@ -490,7 +454,7 @@ function startAutoRefresh() {
 }
 
 function silentRefresh() {
-  fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
+  flowFetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
       var changed = false, notifications = [];
@@ -647,7 +611,7 @@ function saveRowToSharePoint(id, callback) {
     specialist: r.specialist, direction: r.direction, deadline: r.deadline || null,
     supplier: r.firma, place: r.place, driver: '', officeNote: r.officeNote||'', status: r.status
   };
-  fetch(SAVE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
+  flowFetch(SAVE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
     .then(function(res) {
       if (!res.ok) { r.isSaving = false; rebuildTable(); showToast('❌ Грешка при записване: ' + res.status, true); return Promise.reject('http'); }
       return res.json().catch(function() { return {}; });
@@ -666,7 +630,7 @@ function saveRowToSharePoint(id, callback) {
 
 function updateInSharePoint(r, callback) {
   if (!r.spId) { saveRowToSharePoint(r.id, callback); return; }
-  fetch(UPDATE_FLOW_URL, {
+  flowFetch(UPDATE_FLOW_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn||null, note:r.note||'', officeNote:r.officeNote||'', place:r.place||'' })
   })
@@ -688,7 +652,7 @@ function saveAllToSharePoint() {
 function loadFromSharePoint() {
   showToast('⏳ Зареждане...');
   if (countdownTimer) clearInterval(countdownTimer);
-  fetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
+  flowFetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
     .then(function(res) { return res.json(); })
     .then(function(data) {
       var items = (data.value||[]).filter(function(item) {
@@ -937,6 +901,7 @@ document.addEventListener('click', function(e) {
   if (menu.contains(e.target)) return;
   menu.style.display = 'none';
 });
+initAuth();
 </script>
 </body>
 </html>
