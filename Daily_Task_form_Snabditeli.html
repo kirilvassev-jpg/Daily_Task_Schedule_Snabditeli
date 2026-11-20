@@ -256,6 +256,7 @@ tbody tr.status-overdue-red { background: #fef2f2 !important; }
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
     <span class="auto-refresh-badge">🔄 Авто: <span id="nextRefresh">60</span>с</span>
     <div class="last-saved">Последно: <span id="lastSaved">—</span></div>
+    <span id="refreshError" role="status" style="color:#b91c1c" hidden></span>
   </div>
 </div>
 </div>
@@ -326,19 +327,18 @@ var PROXY_URL    = SUPABASE_URL + "/functions/v1/flow-proxy";
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var SAVE_FLOW_URL = "save", GET_FLOW_URL = "get", UPDATE_FLOW_URL = "update";
 
-function flowFetch(action, opts) {
-  var data = {};
-  try { data = (opts && opts.body) ? JSON.parse(opts.body) : {}; } catch (e) {}
-  return sb.auth.getSession().then(function(r) {
-    var session = r.data.session;
-    var headers = { "Content-Type": "application/json", "apikey": SUPABASE_KEY };
-    if (session) headers["Authorization"] = "Bearer " + session.access_token;
-    return fetch(PROXY_URL, { method: "POST", headers: headers,
-      body: JSON.stringify({ app: "daily-tasks", action: action, data: data }) });
-  }).then(function(res) {
-    if (res.status === 401 || res.status === 403) handleAuthError(res.status);
-    return res;
-  });
+async function flowFetch(action, data) {
+  var sessionResult = await sb.auth.getSession();
+  var session = sessionResult.data.session;
+  var headers = { "Content-Type": "application/json", "apikey": SUPABASE_KEY };
+  if (session) headers["Authorization"] = "Bearer " + session.access_token;
+  var response = await fetch(PROXY_URL, { method: "POST", headers: headers,
+    body: JSON.stringify({ app: "daily-tasks", action: action, data: data }) });
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) handleAuthError(response.status);
+    throw new Error('HTTP ' + response.status);
+  }
+  return response;
 }
 
 var currentUser = null, currentRole = null;
@@ -347,6 +347,7 @@ var DIRECTIONS  = ['Всички направления','Администрац
 var DRIVERS     = ['Ангел Драгомиров','Димитър Йотов','Николай Пейчинов'];
 var rows = [], rowId = 0, pendingTakeId = null, pendingDoneId = null, pendingEditId = null;
 var countdownTimer = null, secondsLeft = 60;
+var sharePointRefresh = null, sharePointWriteVersion = 0;
 
 document.getElementById('mainDate').value = new Date().toISOString().split('T')[0];
 
@@ -454,63 +455,122 @@ function startAutoRefresh() {
 }
 
 function silentRefresh() {
-  // Ако в момента се записва задача, пропускаме този цикъл – иначе новият запис
-  // може да се появи два пъти (преди страницата да е получила ID-то му).
-  if (rows.some(function(x) { return x.isSaving; })) return;
-  flowFetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
-    .then(function(res) { return res.json(); })
+  return refreshSharePoint(true);
+}
+
+function isSharePointId(id) {
+  return (typeof id === 'number' || typeof id === 'string') && /^[1-9][0-9]*$/.test(String(id));
+}
+
+function readSharePointRows(data) {
+  if (!data || data.error || !Array.isArray(data.value)) {
+    throw new Error('Невалиден списък от SharePoint');
+  }
+  var ids = new Set();
+  return data.value.map(function(item) {
+    if (!item || !isSharePointId(item.ID) || ids.has(String(item.ID))) {
+      throw new Error('Невалиден идентификатор на задача');
+    }
+    ids.add(String(item.ID));
+    var status = item['OData__x0421__x0442__x0430__x0442__x04'];
+    var deadline = item['OData__x0414__x0430__x0442__x0430__x04'];
+    var deliveredOn = item['OData__x0414__x043e__x0441__x0442__x040'];
+    return {
+      spId: item.ID,
+      specialist: item['OData__x0421__x043f__x0435__x0446__x04'] || '',
+      firma: item['OData__x0414__x043e__x0441__x0442__x04'] || '',
+      deadline: deadline ? deadline.split('T')[0] : '',
+      direction: item['OData__x041d__x0430__x043f__x0440__x04'] || '',
+      place: item['OData__x041c__x044f__x0441__x0442__x04'] || '',
+      supplier: item['OData__x0421__x043d__x0430__x0431__x04'] || '',
+      officeNote: item['OData__x0411__x0435__x043b__x0435__x04'] || '',
+      status: (status && status.Value) || (typeof status === 'string' ? status : 'За изпълнение'),
+      deliveredOn: deliveredOn ? deliveredOn.split('T')[0] : '',
+      note: item['OData__x0411__x0435__x043b__x04'] || '',
+      createdAt: item.Created || null
+    };
+  });
+}
+
+function mergeSharePointRows(serverRows, automatic) {
+  var byId = new Map(serverRows.map(function(task) { return [String(task.spId), task]; }));
+  var changed = false, notifications = [];
+  rows = rows.filter(function(r) {
+    if (!r.spId) return true;
+    var id = String(r.spId);
+    var task = byId.get(id);
+    byId.delete(id);
+
+    if (!r.savedToSP) return true;
+    if (!task || task.status === 'Изпълнена') {
+      if (automatic && task) notifications.push('✅ Задача изпълнена!<br><small>' +
+        (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' +
+        r.supplier + '</strong></small>');
+      changed = true;
+      return false;
+    }
+    if (automatic && task.status === 'В процес на изпълнение' && r.status === 'За изпълнение') {
+      notifications.push('🚚 Задача поета!<br><small>' + (r.firma||'') + ' → ' +
+        (r.place||'') + '</small><br><small>от <strong>' + task.supplier + '</strong></small>');
+    }
+    task.createdAt = task.createdAt || r.createdAt;
+    if (Object.keys(task).some(function(key) { return task[key] !== r[key]; })) {
+      Object.assign(r, task);
+      changed = true;
+    }
+    return true;
+  });
+  byId.forEach(function(task) {
+    if (task.status === 'Изпълнена') return;
+    task.id = ++rowId;
+    task.savedToSP = true;
+    task.isSaving = false;
+    task.createdAt = task.createdAt || new Date().toISOString();
+    rows.push(task);
+    changed = true;
+    if (automatic) notifications.push('🚚 Нова задача от шофьор!<br><small>' + task.firma + ' → ' +
+      task.place + '</small>');
+  });
+  if (changed) renderTaskViews();
+  if (notifications.length > 0) {
+    showNotif(notifications.join('<hr style="border-color:rgba(255,255,255,0.3);margin:6px 0">'),
+      notifications[0].indexOf('🚚') >= 0);
+  }
+}
+
+function refreshSharePoint(automatic) {
+  if (sharePointRefresh) {
+    if (!automatic) showToast('⏳ Задачите се обновяват…');
+    return sharePointRefresh;
+  }
+  if (rows.some(function(r) { return r.isSaving; })) {
+    if (!automatic) showToast('⏳ Изчакайте текущия запис и обновете отново.');
+    return;
+  }
+  if (!automatic) showToast('⏳ Зареждане...');
+  var writeVersion = sharePointWriteVersion;
+  var refreshError = document.getElementById('refreshError');
+  sharePointRefresh = flowFetch(GET_FLOW_URL, {})
+    .then(function(response) { return response.json(); })
     .then(function(data) {
-      var changed = false, notifications = [];
-      var allItems = (data.value||[]).filter(function(item) { return item.ID; });
-      var activeSpIds = [];
-      allItems.forEach(function(item) {
-        var s = item['OData__x0421__x0442__x0430__x0442__x04'];
-        var newStatus   = (s && s.Value) ? s.Value : (typeof s==='string' ? s : 'За изпълнение');
-        var newSupplier = item['OData__x0421__x043d__x0430__x0431__x04'] || '';
-        if (newStatus === 'Изпълнена') return;
-        activeSpIds.push(item.ID);
-        var r = rows.find(function(x) { return x.spId == item.ID; });
-        if (!r) {
-          addRow({
-            id:++rowId, spId:item.ID, isSaving:false, _pendingFn:null,
-            specialist:  item['OData__x0421__x043f__x0435__x0446__x04'] || '',
-            firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
-            deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
-            direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
-            place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
-            supplier:    newSupplier,
-            officeNote:  item['OData__x0411__x0435__x043b__x0435__x04'] || '',
-            status:      newStatus,
-            deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
-            note:        item['OData__x0411__x0435__x043b__x04'] || '',
-            savedToSP:   true,
-            createdAt:   item.Created || null
-          });
-          notifications.push('🚚 Нова задача от шофьор!<br><small>' + (item['OData__x0414__x043e__x0441__x0442__x04']||'') + ' → ' + (item['OData__x041c__x044f__x0441__x0442__x04']||'') + '</small>');
-          changed = true;
-        } else if (r.status !== newStatus || r.supplier !== newSupplier) {
-          if (newStatus==='В процес на изпълнение' && r.status==='За изпълнение')
-            notifications.push('🚚 Задача поета!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + newSupplier + '</strong></small>');
-          r.status = newStatus; r.supplier = newSupplier; r.savedToSP = true; changed = true;
-        }
-      });
-      var toRemove = rows.filter(function(r) { return r.spId && activeSpIds.indexOf(r.spId) === -1; });
-      if (toRemove.length > 0) {
-        toRemove.forEach(function(r) {
-          notifications.push('✅ Задача изпълнена!<br><small>' + (r.firma||'') + ' → ' + (r.place||'') + '</small><br><small>от <strong>' + r.supplier + '</strong></small>');
-        });
-        rows = rows.filter(function(r) { return !r.spId || activeSpIds.indexOf(r.spId) !== -1; });
-        changed = true;
-      }
-      if (changed) {
-        rebuildTable(); updateStats();
-        if (document.getElementById('driverView').style.display!=='none') renderCards();
-        document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
-      }
-      if (notifications.length > 0)
-        showNotif(notifications.join('<hr style="border-color:rgba(255,255,255,0.3);margin:6px 0">'), notifications[0].indexOf('🚚')>=0);
+      // По-стар отговор за списъка не трябва да презаписва текущ запис.
+      if (!currentRole || writeVersion !== sharePointWriteVersion) return false;
+      mergeSharePointRows(readSharePointRows(data), automatic);
+      refreshError.hidden = true;
+      document.getElementById('lastSaved').textContent = 'Обновено ' + nowStr();
+      if (!automatic) showToast('✅ Задачите са обновени!');
+      return true;
     })
-    .catch(function() {});
+    .catch(function() {
+      if (currentRole && writeVersion === sharePointWriteVersion) {
+        refreshError.textContent = '⚠️ Обновяването не успя. Натиснете „Обнови“.';
+        refreshError.hidden = false;
+        if (!automatic) showToast(refreshError.textContent, true);
+      }
+      return false;
+    })
+    .finally(function() { sharePointRefresh = null; });
+  return sharePointRefresh;
 }
 
 // ── Табло снабдители ──
@@ -539,13 +599,12 @@ function makeSelect(opts, val, onch) {
 
 function addRow(data) {
   var id = ++rowId;
-  var r = data || { id:id, spId:null, isSaving:false, _pendingFn:null,
+  var r = data || { id:id, spId:null, isSaving:false,
     specialist:'', firma:'', deadline:'', direction:'', place:'',
     officeNote:'', supplier:'', status:'За изпълнение', savedToSP:false, deliveredOn:'', note:'' };
   if (!r.id) r.id = id;
   if (!r.status) r.status = 'За изпълнение';
-  if (r.isSaving===undefined) r.isSaving = false;
-  if (r._pendingFn===undefined) r._pendingFn = null;
+  r.isSaving = false;
   if (r.deliveredOn===undefined) r.deliveredOn = '';
   if (r.note===undefined) r.note = '';
   if (r.officeNote===undefined) r.officeNote = '';
@@ -553,6 +612,14 @@ function addRow(data) {
   rows.push(r);
   renderTableRow(r);
   updateStats();
+}
+
+function sharePointCell(r) {
+  return r.isSaving
+    ? '<span style="font-size:10px;color:#0078d4">⏳ Записва...</span>'
+    : r.savedToSP
+    ? '<span class="sp-saved">✅ Запазено</span>'
+    : '<button class="sp-save-btn" onclick="saveRowToSharePoint(' + r.id + ')">☁️ Запази</button>';
 }
 
 function renderTableRow(r) {
@@ -566,11 +633,6 @@ function renderTableRow(r) {
     : r.status==='В процес на изпълнение'
     ? '<span class="status-badge badge-taken">🚚 В процес</span>'
     : '<span class="status-badge badge-free">📋 За изпълнение</span>';
-  var spCell = r.isSaving
-    ? '<span style="font-size:10px;color:#0078d4">⏳ Записва...</span>'
-    : r.savedToSP
-    ? '<span class="sp-saved">✅ Запазено</span>'
-    : '<button class="sp-save-btn" onclick="saveRowToSharePoint(' + r.id + ')">☁️ Запази</button>';
   var supplierHtml = r.supplier
     ? '<span class="supplier-cell taken">🚚 ' + r.supplier + '</span>'
     : '<span class="supplier-cell empty">— очаква се —</span>';
@@ -581,13 +643,13 @@ function renderTableRow(r) {
   tr.innerHTML =
     '<td class="num">' + (rows.indexOf(r)+1) + '</td>' +
     '<td>' + makeSelect(SPECIALISTS, r.specialist, 'updateField(' + r.id + ',\'specialist\',this.value)') + '</td>' +
-    '<td><input type="text" placeholder="Доставчик" value="' + (r.firma||'') + '" onchange="updateField(' + r.id + ',\'firma\',this.value)"></td>' +
-    '<td><span class="' + dlClass + '">' + dlIcon + '</span><input type="date" value="' + (r.deadline||'') + '" onchange="updateField(' + r.id + ',\'deadline\',this.value)"></td>' +
+    '<td><input type="text" placeholder="Доставчик" value="' + (r.firma||'') + '" oninput="updateField(' + r.id + ',\'firma\',this.value)"></td>' +
+    '<td><span class="' + dlClass + '">' + dlIcon + '</span><input type="date" value="' + (r.deadline||'') + '" oninput="updateField(' + r.id + ',\'deadline\',this.value)"></td>' +
     '<td>' + makeSelect(DIRECTIONS, r.direction, 'updateField(' + r.id + ',\'direction\',this.value)') + '</td>' +
-    '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" onchange="updateField(' + r.id + ',\'place\',this.value)">' + editBtn + '</td>' +
-    '<td><textarea rows="2" placeholder="Бележка към шофьора..." onchange="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#1f2937;width:100%;border:none;background:transparent;font-size:12px;padding:3px 5px;font-family:inherit;outline:none;resize:vertical">' + (r.officeNote||'') + '</textarea></td>' +
+    '<td><input type="text" placeholder="Адрес / обект" value="' + (r.place||'') + '" oninput="updateField(' + r.id + ',\'place\',this.value)">' + editBtn + '</td>' +
+    '<td><textarea rows="2" placeholder="Бележка към шофьора..." oninput="updateField(' + r.id + ',\'officeNote\',this.value)" style="color:#1f2937;width:100%;border:none;background:transparent;font-size:12px;padding:3px 5px;font-family:inherit;outline:none;resize:vertical">' + (r.officeNote||'') + '</textarea></td>' +
     '<td style="text-align:center">' + supplierHtml + timerHtml + '<br>' + badge + '</td>' +
-    '<td class="sp-btn-cell">' + spCell + '</td>' +
+    '<td class="sp-btn-cell">' + sharePointCell(r) + '</td>' +
     '<td><button class="del-btn" onclick="deleteRow(' + r.id + ')">✕</button></td>';
   tbody.appendChild(tr);
 }
@@ -600,101 +662,90 @@ function collectRowData(r) {
   r.deadline   = inp[1] ? inp[1].value : r.deadline;
   r.direction  = sel[1] ? sel[1].value : r.direction;
   r.place      = inp[2] ? inp[2].value : r.place;
-  r.officeNote = inp[3] ? inp[3].value : r.officeNote;
+  var note = tr.querySelector('textarea');
+  if (note) r.officeNote = note.value;
 }
 
-function saveRowToSharePoint(id, callback) {
-  var r = rows.find(function(x) { return x.id===id; }); if (!r) return;
-  if (r.spId) { updateInSharePoint(r, callback); return; }
-  if (r.isSaving) { if (callback) r._pendingFn = callback; return; }
+async function saveRowToSharePoint(id, changes) {
+  var r = rows.find(function(x) { return x.id === id; });
+  if (!r || r.isSaving) return false;
+
   collectRowData(r);
-  r.isSaving = true; rebuildTable();
-  var payload = {
-    date: document.getElementById('mainDate').value,
-    specialist: r.specialist, direction: r.direction, deadline: r.deadline || null,
-    supplier: r.firma, place: r.place, driver: '', officeNote: r.officeNote||'', status: r.status
-  };
-  flowFetch(SAVE_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
-    .then(function(res) {
-      if (!res.ok) { r.isSaving = false; rebuildTable(); showToast('❌ Грешка при записване: ' + res.status, true); return Promise.reject('http'); }
-      return res.json().catch(function() { return {}; });
-    })
-    .then(function(data) {
-      if (!data) return;
-      r.spId = data.id || data.ID || data.ItemId || data.itemId || null;
-      r.savedToSP = true; r.isSaving = false;
-      if (r.spId) {
-        // ако автоматичното обновяване вече е добавило същия запис – махаме дубликата
-        rows = rows.filter(function(x) { return x === r || x.spId != r.spId; });
+  var task = Object.assign({}, r, changes);
+  var creating = !r.spId;
+  r.isSaving = true;
+  sharePointWriteVersion++;
+  rebuildTable();
+
+  try {
+    if (creating) {
+      var response = await flowFetch(SAVE_FLOW_URL, {
+        date: document.getElementById('mainDate').value,
+        specialist: task.specialist, direction: task.direction, deadline: task.deadline || null,
+        supplier: task.firma, place: task.place, driver: task.supplier || '',
+        officeNote: task.officeNote || '', status: task.status
+      });
+      var result = await response.json().catch(function() { return null; });
+      var newId = result && !result.error && (result.id || result.ID || result.ItemId || result.itemId);
+      if (!isSharePointId(newId)) {
+        throw new Error('Липсва номер на задачата. Обновете списъка и проверете преди повторен запис.');
       }
-      rebuildTable(); showToast('✅ Записано в SharePoint!');
-      document.getElementById('lastSaved').textContent = nowStr();
-      var fn = r._pendingFn; r._pendingFn = null;
-      if (fn) fn(); else if (callback) callback();
-    })
-    .catch(function(e) { if (e !== 'http') { r.isSaving = false; rebuildTable(); showToast('❌ Грешка при записване!', true); } });
-}
+      r.spId = newId;
+      rows = rows.filter(function(x) { return x === r || String(x.spId) !== String(newId); });
+    } else {
+      var updated = await flowFetch(UPDATE_FLOW_URL, {
+        id: r.spId, status: task.status, driver: task.supplier, deliveredOn: task.deliveredOn || null,
+        note: task.note || '', officeNote: task.officeNote || '', place: task.place || ''
+      });
+      // Някои успешни обновявания връщат само HTTP статус.
+      if ((updated.headers.get('content-type') || '').includes('json')) {
+        var body = await updated.text();
+        var updateResult = body.trim() ? JSON.parse(body) : null;
+        if (updateResult && updateResult.error) throw new Error('Непотвърдено обновяване');
+      }
+    }
 
-function updateInSharePoint(r, callback) {
-  if (!r.spId) { saveRowToSharePoint(r.id, callback); return; }
-  flowFetch(UPDATE_FLOW_URL, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id:r.spId, status:r.status, driver:r.supplier, deliveredOn:r.deliveredOn||null, note:r.note||'', officeNote:r.officeNote||'', place:r.place||'' })
-  })
-  .then(function() {
-    r.savedToSP = true;
+    Object.assign(r, changes);
+    // Промени, въведени докато заявката е в ход, остават за следващия запис.
+    r.savedToSP = ['specialist', 'firma', 'deadline', 'direction', 'place', 'officeNote']
+      .every(function(field) { return r[field] === task[field]; });
+    if (r.status === 'Изпълнена') rows = rows.filter(function(x) { return x !== r; });
     document.getElementById('lastSaved').textContent = nowStr();
-    if (callback) callback();
-    else { rebuildTable(); showToast('✅ Статусът е обновен!'); }
-  })
-  .catch(function() { showToast('❌ Грешка при обновяване!', true); });
+    if (!changes) showToast(creating ? '✅ Записано в SharePoint!' : '✅ Задачата е обновена!');
+    return true;
+  } catch (error) {
+    var detail = error.message;
+    var message = /^HTTP [0-9]+$/.test(detail) || detail.indexOf('Липсва номер') === 0
+      ? ' ' + detail : '';
+    if (currentRole) showToast('❌ Записът в SharePoint не е потвърден.' + message, true);
+    return false;
+  } finally {
+    r.isSaving = false;
+    renderTaskViews();
+  }
 }
 
-function saveAllToSharePoint() {
+async function saveAllToSharePoint() {
   var unsaved = rows.filter(function(r) { return !r.savedToSP && !r.isSaving; });
-  if (unsaved.length===0) { showToast('Всички задачи са вече запазени!'); return; }
-  unsaved.forEach(function(r) { saveRowToSharePoint(r.id); });
+  if (unsaved.length === 0) {
+    showToast(rows.some(function(r) { return r.isSaving; })
+      ? '⏳ Записването е в ход…' : 'Всички задачи са вече запазени!');
+    return;
+  }
+  var results = await Promise.all(unsaved.map(function(r) { return saveRowToSharePoint(r.id); }));
+  if (currentRole && results.length > 1 && results.some(function(saved) { return !saved; })) {
+    showToast('⚠️ Има непотвърдени записи. Проверете задачите в SharePoint.', true);
+  }
 }
 
 function loadFromSharePoint() {
-  showToast('⏳ Зареждане...');
-  if (countdownTimer) clearInterval(countdownTimer);
-  flowFetch(GET_FLOW_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-      var items = (data.value||[]).filter(function(item) {
-        if (!item.ID) return false;
-        var s = item['OData__x0421__x0442__x0430__x0442__x04'];
-        var sv = (s && s.Value) ? s.Value : (typeof s==='string' ? s : 'За изпълнение');
-        return sv !== 'Изпълнена';
-      });
-      rows = []; rowId = 0; document.getElementById('tableBody').innerHTML = '';
-      items.forEach(function(item) {
-        var s = item['OData__x0421__x0442__x0430__x0442__x04'];
-        var sv = (s && s.Value) ? s.Value : (typeof s==='string' ? s : 'За изпълнение');
-        addRow({
-          id:++rowId, spId:item.ID, isSaving:false, _pendingFn:null,
-          specialist:  item['OData__x0421__x043f__x0435__x0446__x04'] || '',
-          firma:       item['OData__x0414__x043e__x0441__x0442__x04'] || '',
-          deadline:    item['OData__x0414__x0430__x0442__x0430__x04'] ? item['OData__x0414__x0430__x0442__x0430__x04'].split('T')[0] : '',
-          direction:   item['OData__x041d__x0430__x043f__x0440__x04'] || '',
-          place:       item['OData__x041c__x044f__x0441__x0442__x04'] || '',
-          supplier:    item['OData__x0421__x043d__x0430__x0431__x04'] || '',
-          officeNote:  item['OData__x0411__x0435__x043b__x0435__x04'] || '',
-          status:      sv,
-          deliveredOn: item['OData__x0414__x043e__x0441__x0442__x040'] ? item['OData__x0414__x043e__x0441__x0442__x040'].split('T')[0] : '',
-          note:        item['OData__x0411__x0435__x043b__x04'] || '',
-          savedToSP:   true,
-          createdAt:   item.Created || null
-        });
-      });
-      updateStats();
-      if (document.getElementById('driverView').style.display!=='none') renderCards();
-      showToast('✅ Заредени ' + items.length + ' задачи!');
-      document.getElementById('lastSaved').textContent = 'Заредено ' + nowStr();
-      startAutoRefresh();
-    })
-    .catch(function() { showToast('⚠️ Неуспешно зареждане!', true); startAutoRefresh(); });
+  return refreshSharePoint(false);
+}
+
+function renderTaskViews() {
+  rebuildTable();
+  updateStats();
+  if (document.getElementById('driverView').style.display !== 'none') renderCards();
 }
 
 function renderCards() {
@@ -744,17 +795,14 @@ function closeEditModal() {
   document.getElementById('editModalOverlay').classList.remove('open');
   pendingEditId = null;
 }
-function confirmEdit() {
+async function confirmEdit() {
   var newPlace = document.getElementById('editPlaceInput').value.trim();
   if (!newPlace) { showToast('❌ Моля въведете адрес!', true); return; }
-  var r = rows.find(function(x) { return x.id===pendingEditId; });
-  if (!r) { closeEditModal(); return; }
-  r.place = newPlace; r.savedToSP = false;
-  closeEditModal();
-  updateInSharePoint(r, function() {
-    rebuildTable(); updateStats();
+  var id = pendingEditId;
+  if (await saveRowToSharePoint(id, { place: newPlace })) {
+    if (pendingEditId === id) closeEditModal();
     showToast('✅ Адресът е коригиран!');
-  });
+  }
 }
 
 // ── Модал: Поемам ──
@@ -767,14 +815,14 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
   pendingTakeId = null;
 }
-function confirmTake() {
+async function confirmTake() {
   var name = document.getElementById('driverNameSelect').value;
   if (!name) { showToast('❌ Моля изберете снабдител!', true); return; }
-  var r = rows.find(function(x) { return x.id===pendingTakeId; });
-  if (!r) { closeModal(); return; }
-  r.supplier = name; r.status = 'В процес на изпълнение'; r.savedToSP = false;
-  closeModal(); rebuildTable(); renderCards(); updateStats();
-  updateInSharePoint(r);
+  var id = pendingTakeId;
+  if (await saveRowToSharePoint(id, { supplier: name, status: 'В процес на изпълнение' })) {
+    if (pendingTakeId === id) closeModal();
+    showToast('✅ Задачата е поета!');
+  }
 }
 
 // ── Модал: Изпълнено ──
@@ -788,24 +836,26 @@ function closeDoneModal() {
   document.getElementById('doneModalOverlay').classList.remove('open');
   pendingDoneId = null;
 }
-function confirmDone() {
+async function confirmDone() {
   var deliveredOn = document.getElementById('deliveredOnInput').value;
   var note = document.getElementById('deliveryNoteInput').value.trim();
   if (!deliveredOn) { alert('Моля въведете дата!'); return; }
-  var r = rows.find(function(x) { return x.id===pendingDoneId; });
-  if (!r) { closeDoneModal(); return; }
-  r.status = 'Изпълнена'; r.deliveredOn = deliveredOn; r.note = note; r.savedToSP = false;
-  closeDoneModal();
-  updateInSharePoint(r, function() {
-    rows = rows.filter(function(x) { return x.id !== r.id; });
-    rebuildTable(); renderCards(); updateStats();
+  var id = pendingDoneId;
+  if (await saveRowToSharePoint(id, { status: 'Изпълнена', deliveredOn: deliveredOn, note: note })) {
+    if (pendingDoneId === id) closeDoneModal();
     showToast('✅ Задачата е изпълнена и архивирана!');
-  });
+  }
 }
 
 function updateField(id, field, val) {
   var r = rows.find(function(x) { return x.id===id; });
-  if (r) { r[field] = val; r.savedToSP = false; }
+  if (!r || r[field] === val) return;
+  r[field] = val;
+  if (r.savedToSP) {
+    r.savedToSP = false;
+    var tr = document.getElementById('row-' + id);
+    if (tr) tr.querySelector('.sp-btn-cell').innerHTML = sharePointCell(r);
+  }
   updateStats();
 }
 function deleteRow(id) {
