@@ -326,6 +326,10 @@ var SUPABASE_KEY = "sb_publishable_aMxRatJ2BJxE5vQIhffing_8_zMpBDO"; // Supabase
 var PROXY_URL    = SUPABASE_URL + "/functions/v1/flow-proxy";
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var SAVE_FLOW_URL = "save", GET_FLOW_URL = "get", UPDATE_FLOW_URL = "update";
+var DETAIL_FIELDS = {
+  firma: 'supplier', specialist: 'specialist', direction: 'direction',
+  deadline: 'deadline', place: 'place', officeNote: 'officeNote'
+};
 
 async function flowFetch(action, data) {
   var sessionResult = await sb.auth.getSession();
@@ -605,6 +609,7 @@ function addRow(data) {
   if (!r.id) r.id = id;
   if (!r.status) r.status = 'За изпълнение';
   r.isSaving = false;
+  if (r.spId && r.pendingDetails && Object.keys(r.pendingDetails).length === 0) delete r.pendingDetails;
   if (r.deliveredOn===undefined) r.deliveredOn = '';
   if (r.note===undefined) r.note = '';
   if (r.officeNote===undefined) r.officeNote = '';
@@ -666,13 +671,38 @@ function collectRowData(r) {
   if (note) r.officeNote = note.value;
 }
 
+async function saveTaskDetails(r, task, fields) {
+  var details = Object.fromEntries(fields.map(function(field) {
+    return [DETAIL_FIELDS[field], task[field] || (field === 'deadline' ? null : '')];
+  }));
+  var id = Number(r.spId);
+  var response = await flowFetch('edit-details', { id: id, details: details });
+  var result = await response.json();
+  if (!result || result.detailsSaved !== true || result.id !== id) {
+    throw new Error('Непотвърдени полета на задачата');
+  }
+  clearSavedDetailFields(r, task, fields);
+}
+
+function clearSavedDetailFields(r, task, fields) {
+  if (!r.pendingDetails) return;
+  fields.forEach(function(field) {
+    if (r.pendingDetails[field] === task[field]) delete r.pendingDetails[field];
+  });
+}
+
 async function saveRowToSharePoint(id, changes) {
   var r = rows.find(function(x) { return x.id === id; });
   if (!r || r.isSaving) return false;
 
-  collectRowData(r);
-  var task = Object.assign({}, r, changes);
   var creating = !r.spId;
+  if (creating) collectRowData(r);
+  var task = Object.assign({}, r, changes);
+  var changedFields = Object.keys(r.pendingDetails || {}).filter(function(field) {
+    return Object.hasOwn(DETAIL_FIELDS, field);
+  });
+  // Стари локални експорти пазят флага за незаписан ред, без списък на редакциите.
+  if (!changes && !r.pendingDetails && !r.savedToSP) changedFields = Object.keys(DETAIL_FIELDS);
   r.isSaving = true;
   sharePointWriteVersion++;
   rebuildTable();
@@ -692,7 +722,14 @@ async function saveRowToSharePoint(id, changes) {
       }
       r.spId = newId;
       rows = rows.filter(function(x) { return x === r || String(x.spId) !== String(newId); });
+      clearSavedDetailFields(r, task, Object.keys(DETAIL_FIELDS));
     } else {
+      var fieldsToSave = changedFields.filter(function(field) {
+        return !changes || !Object.hasOwn(changes, field);
+      });
+      if (fieldsToSave.length > 0) await saveTaskDetails(r, task, fieldsToSave);
+    }
+    if (!creating && changes) {
       var updated = await flowFetch(UPDATE_FLOW_URL, {
         id: r.spId, status: task.status, driver: task.supplier, deliveredOn: task.deliveredOn || null,
         note: task.note || '', officeNote: task.officeNote || '', place: task.place || ''
@@ -703,12 +740,13 @@ async function saveRowToSharePoint(id, changes) {
         var updateResult = body.trim() ? JSON.parse(body) : null;
         if (updateResult && updateResult.error) throw new Error('Непотвърдено обновяване');
       }
+      if (Object.hasOwn(changes, 'place')) delete (r.pendingDetails || {}).place;
     }
 
     Object.assign(r, changes);
     // Промени, въведени докато заявката е в ход, остават за следващия запис.
-    r.savedToSP = ['specialist', 'firma', 'deadline', 'direction', 'place', 'officeNote']
-      .every(function(field) { return r[field] === task[field]; });
+    r.savedToSP = Object.keys(r.pendingDetails || {}).length === 0 &&
+      Object.keys(DETAIL_FIELDS).every(function(field) { return r[field] === task[field]; });
     if (r.status === 'Изпълнена') rows = rows.filter(function(x) { return x !== r; });
     document.getElementById('lastSaved').textContent = nowStr();
     if (!changes) showToast(creating ? '✅ Записано в SharePoint!' : '✅ Задачата е обновена!');
@@ -851,6 +889,10 @@ function updateField(id, field, val) {
   var r = rows.find(function(x) { return x.id===id; });
   if (!r || r[field] === val) return;
   r[field] = val;
+  if (Object.hasOwn(DETAIL_FIELDS, field)) {
+    if (!r.pendingDetails) r.pendingDetails = {};
+    r.pendingDetails[field] = val;
+  }
   if (r.savedToSP) {
     r.savedToSP = false;
     var tr = document.getElementById('row-' + id);

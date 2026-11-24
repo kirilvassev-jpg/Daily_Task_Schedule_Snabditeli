@@ -1,0 +1,136 @@
+{
+  "triggerSchemaAdditions": {
+    "details": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "supplier": {
+          "type": "string"
+        },
+        "deadline": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "specialist": {
+          "type": "string"
+        },
+        "direction": {
+          "type": "string"
+        },
+        "place": {
+          "type": "string"
+        },
+        "officeNote": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "action": {
+    "type": "If",
+    "expression": {
+      "and": [
+        {
+          "equals": [
+            "@contains(triggerBody(), 'details')",
+            true
+          ]
+        }
+      ]
+    },
+    "actions": {
+      "Get_task_list": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "dataset": "__TASK_SITE__",
+            "parameters/method": "GET",
+            "parameters/uri": "_api/web/lists(guid'__TASK_LIST_GUID__')?$select=ListItemEntityTypeFullName",
+            "parameters/headers": {
+              "Accept": "application/json;odata=nometadata"
+            }
+          },
+          "host": {
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+            "connection": "__EXISTING_SHAREPOINT_CONNECTION__",
+            "operationId": "HttpRequest"
+          }
+        },
+        "runAfter": {}
+      },
+      "Merge_task_details": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "dataset": "__TASK_SITE__",
+            "parameters/method": "POST",
+            "parameters/uri": "_api/web/lists(guid'__TASK_LIST_GUID__')/items(@{triggerBody()?['id']})",
+            "parameters/headers": {
+              "Accept": "application/json;odata=verbose",
+              "Content-Type": "application/json;odata=verbose",
+              "IF-MATCH": "*",
+              "X-HTTP-Method": "MERGE"
+            },
+            "parameters/body": "@string(union(setProperty(json('{}'), '__metadata', setProperty(json('{}'), 'type', body('Get_task_list')?['ListItemEntityTypeFullName'])), if(contains(triggerBody()?['details'], 'supplier'), setProperty(json('{}'), 'OData__x0414__x043e__x0441__x0442__x04', triggerBody()?['details']?['supplier']), json('{}')), if(contains(triggerBody()?['details'], 'deadline'), setProperty(json('{}'), 'OData__x0414__x0430__x0442__x0430__x04', if(equals(triggerBody()?['details']?['deadline'], null), null, concat(triggerBody()?['details']?['deadline'], 'T00:00:00Z'))), json('{}')), if(contains(triggerBody()?['details'], 'specialist'), setProperty(json('{}'), 'OData__x0421__x043f__x0435__x0446__x04', triggerBody()?['details']?['specialist']), json('{}')), if(contains(triggerBody()?['details'], 'direction'), setProperty(json('{}'), 'OData__x041d__x0430__x043f__x0440__x04', triggerBody()?['details']?['direction']), json('{}')), if(contains(triggerBody()?['details'], 'place'), setProperty(json('{}'), 'OData__x041c__x044f__x0441__x0442__x04', triggerBody()?['details']?['place']), json('{}')), if(contains(triggerBody()?['details'], 'officeNote'), setProperty(json('{}'), 'OData__x0411__x0435__x043b__x0435__x04', triggerBody()?['details']?['officeNote']), json('{}'))))"
+          },
+          "host": {
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+            "connection": "__EXISTING_SHAREPOINT_CONNECTION__",
+            "operationId": "HttpRequest"
+          }
+        },
+        "runAfter": {
+          "Get_task_list": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Details_saved": {
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "detailsSaved": true,
+            "id": "@triggerBody()?['id']"
+          }
+        },
+        "runAfter": {
+          "Merge_task_details": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Details_failed": {
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 502,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "error": "sharepoint_details_failed"
+          }
+        },
+        "runAfter": {
+          "Merge_task_details": [
+            "Failed",
+            "TimedOut",
+            "Skipped"
+          ]
+        }
+      }
+    },
+    "else": {
+      "actions": {}
+    },
+    "runAfter": {}
+  }
+}

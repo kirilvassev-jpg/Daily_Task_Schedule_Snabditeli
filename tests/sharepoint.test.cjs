@@ -47,7 +47,7 @@ function form() {
     fetch: async (url, options) => {
       requests.push(JSON.parse(options.body));
       assert(responses.length, 'An unexpected request was made');
-      return responses.shift()();
+      return responses.shift()(requests.at(-1));
     },
   });
   script.runInContext(context);
@@ -75,7 +75,7 @@ function form() {
     element,
     requests,
     addRow,
-    reply: response => responses.push(() => response),
+    reply: response => responses.push(typeof response === 'function' ? response : () => response),
     fail: () => responses.push(() => { throw new TypeError('Failed to fetch'); }),
   };
 }
@@ -205,11 +205,11 @@ test('an in-flight save ignores duplicate submits and leaves newer edits unsaved
   assert.equal(await context.saveRowToSharePoint(row.id), false);
   assert.equal(context.loadFromSharePoint(), undefined);
   context.updateField(row.id, 'place', 'По-нов адрес');
-  finish(new Response(null, { status: 204 }));
+  finish(Response.json({ id: 31, detailsSaved: true }));
 
   assert.equal(await saving, true);
   assert.equal(requests.length, 1);
-  assert.equal(requests[0].data.place, 'Стар адрес');
+  assert.equal(requests[0].data.details.place, 'Стар адрес');
   assert.equal(row.place, 'По-нов адрес');
   assert.equal(row.savedToSP, false);
   assert.equal(row.isSaving, false);
@@ -243,4 +243,151 @@ test('HTTP 401 preserves the list and shows the existing sign-in error', async (
   assert.equal(context.currentRole, null);
   assert.equal(element('loginScreen').style.display, 'flex');
   assert.match(element('officeError').textContent, /Сесията е изтекла/);
+});
+
+const { stripTypeScriptTypes } = require('node:module');
+
+function fakeSharePoint() {
+  const flow = JSON.parse(readFileSync(join(__dirname, '../power-automate/update-zadachi-details.json'), 'utf8'));
+  const actions = flow.action.actions;
+  const merge = actions.Merge_task_details.inputs.parameters;
+  const expressions = [...merge['parameters/body'].matchAll(
+    /contains\(triggerBody\(\)\?\['details'\], '([A-Za-z]+)'\), setProperty\(json\('\{\}'\), '([^']+)'/g
+  )];
+  const fields = Object.fromEntries(expressions.map(([, detail, field]) => [detail, field]));
+  assert.deepEqual(Object.keys(fields).sort(), Object.keys(flow.triggerSchemaAdditions.details.properties).sort());
+  assert.equal(merge['parameters/method'], 'POST');
+  assert.equal(merge['parameters/headers']['X-HTTP-Method'], 'MERGE');
+  assert.deepEqual(actions.Details_saved.runAfter, { Merge_task_details: ['Succeeded'] });
+  assert.deepEqual(actions.Details_failed.runAfter, { Merge_task_details: ['Failed', 'TimedOut', 'Skipped'] });
+
+  const saved = {
+    ID: 31, [statusField]: 'В процес на изпълнение', [placeField]: 'Стар адрес',
+    [fields.supplier]: 'Стар доставчик', [fields.specialist]: 'Стар специалист',
+    [fields.direction]: 'Старо направление', [fields.deadline]: '2026-11-19T00:00:00Z',
+  };
+  const updates = [];
+  const edgeSource = readFileSync(join(__dirname, '../supabase/functions/flow-proxy/index.ts'), 'utf8');
+  const parsed = stripTypeScriptTypes(edgeSource.replace(/^import .*;\r?\n/, ''));
+  const vars = {
+    ALLOWED_ORIGINS: 'https://qa.example.invalid',
+    SUPABASE_URL: 'https://qa-supabase.example.invalid',
+    SUPABASE_ANON_KEY: 'test-publishable-key',
+    DRIVER_TOKEN_SECRET: 'test-only-local-signing-secret',
+    FLOW_DT_UPDATE: 'https://qa-flow.example.invalid/update',
+    FLOW_DT_GET: 'https://qa-flow.example.invalid/get',
+  };
+  let handle;
+  const edge = vm.createContext({
+    Deno: { env: { get: key => vars[key] }, serve: callback => { handle = callback; } },
+    TextEncoder, TextDecoder, crypto, atob, btoa, Response, console,
+    createClient: () => ({
+      auth: {
+        getUser: async token => ({
+          data: {
+            user: { email: 'office@example.invalid', app_metadata: { providers: [token === 'office' ? 'azure' : 'email'] } },
+          },
+          error: null,
+        }),
+      },
+      from: () => ({
+        select: () => ({
+          eq: () => ({ eq: () => ({ limit: async () => ({ data: [{ id: 1 }] }) }) }),
+        }),
+      }),
+    }),
+    fetch: async (url, options) => {
+      if (url === vars.FLOW_DT_GET) return Response.json({ value: [saved] });
+      assert.equal(url, vars.FLOW_DT_UPDATE);
+      const { id, details } = JSON.parse(options.body);
+      updates.push({ id, details });
+      if (!details) return new Response(null, { status: 204 });
+      for (const [name, value] of Object.entries(details)) {
+        assert(fields[name], 'The workflow must map ' + name);
+        saved[fields[name]] = name === 'deadline' && value ? value + 'T00:00:00Z' : value;
+      }
+      return Response.json({ ...actions.Details_saved.inputs.body, id });
+    },
+  });
+  vm.runInContext(parsed, edge);
+  const request = (body, headers = { authorization: 'Bearer office' }) => handle(new Request('https://qa.example.invalid/', {
+    method: 'POST',
+    headers: { Origin: vars.ALLOWED_ORIGINS, ...headers },
+    body: JSON.stringify(body),
+  }));
+  return { request, fields, saved, updates, driverToken: () => vm.runInContext('makeDriverToken("Test driver")', edge) };
+}
+
+test('editing four fields persists them and a fresh load reads the new values', async () => {
+  const office = form();
+  const backend = fakeSharePoint();
+  office.reply(backend.request);
+  assert.equal(await office.context.loadFromSharePoint(), true);
+  const row = office.context.rows[0];
+  const values = {
+    firma: 'Нов доставчик',
+    deadline: '2026-11-30',
+    specialist: 'Нов специалист',
+    direction: 'Ново направление',
+  };
+  for (const [field, value] of Object.entries(values)) office.context.updateField(row.id, field, value);
+  office.reply(backend.request);
+  await office.context.saveAllToSharePoint();
+  assert.equal(row.savedToSP, true);
+  assert.deepEqual(backend.updates, [{ id: 31, details: {
+    supplier: values.firma, deadline: values.deadline, specialist: values.specialist, direction: values.direction,
+  } }]);
+
+  const reloaded = form();
+  reloaded.reply(backend.request);
+  await reloaded.context.loadFromSharePoint();
+  const actual = reloaded.context.rows[0];
+  for (const [field, value] of Object.entries(values)) assert.equal(actual[field], value);
+  assert.equal(actual.place, 'Стар адрес');
+  assert.equal(actual.status, 'В процес на изпълнение');
+});
+
+test('clearing the deadline updates only that field', async () => {
+  const office = form();
+  const backend = fakeSharePoint();
+  office.reply(backend.request);
+  assert.equal(await office.context.loadFromSharePoint(), true);
+  const row = office.context.rows[0];
+  office.context.updateField(row.id, 'deadline', '');
+  office.reply(backend.request);
+  assert.equal(await office.context.saveRowToSharePoint(row.id), true);
+  assert.deepEqual(backend.updates, [{ id: 31, details: { deadline: null } }]);
+  assert.equal(backend.saved[backend.fields.deadline], null);
+  assert.equal(backend.saved[backend.fields.supplier], 'Стар доставчик');
+});
+
+test('an update without explicit acknowledgement leaves the edited row pending', async () => {
+  const { context, addRow, element, reply, requests } = form();
+  const row = addRow({ spId: '31', firma: 'Стар доставчик' });
+  context.updateField(row.id, 'firma', 'Нов доставчик');
+  reply(Response.json({ id: 31 }));
+  assert.equal(await context.saveRowToSharePoint(row.id), false);
+  assert.equal(row.savedToSP, false);
+  assert.match(element('toast').textContent, /не е потвърден/);
+  reply(Response.json({ id: 31, detailsSaved: true }));
+  assert.equal(await context.saveRowToSharePoint(row.id), true);
+  assert.equal(row.savedToSP, true);
+  assert.deepEqual(requests[0], requests[1]);
+});
+
+test('the proxy rejects driver detail edits, invalid dates, unknown fields and legacy detail payloads', async () => {
+  const backend = fakeSharePoint();
+  const payload = { id: 31, details: { deadline: null } };
+  const action = (name, data) => ({ app: 'daily-tasks', action: name, data });
+  const driver = { 'x-driver-token': await backend.driverToken() };
+  assert.equal((await backend.request(action('edit-details', payload), driver)).status, 403);
+  assert.equal((await backend.request(action('edit-details', payload), { authorization: 'Bearer other' })).status, 403);
+  assert.equal((await backend.request(action(['edit-details'], payload), driver)).status, 400);
+  assert.equal((await backend.request({ app: ['daily-tasks'], action: 'edit-details', data: payload }, driver)).status, 400);
+  assert.equal((await backend.request(action('update', payload), driver)).status, 400);
+  assert.equal((await backend.request(action('edit-details', { ...payload, details: { deadline: '2026-02-30' } }))).status, 400);
+  assert.equal((await backend.request(action('edit-details', { ...payload, details: { status: 'Изпълнена' } }))).status, 400);
+  assert.equal(backend.updates.length, 0);
+  assert.equal((await backend.request(action('update', { id: 31, status: 'Изпълнена' }), driver)).status, 204);
+  assert.deepEqual(backend.updates, [{ id: 31, details: undefined }]);
 });
